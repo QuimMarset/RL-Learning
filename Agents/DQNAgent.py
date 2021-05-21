@@ -1,57 +1,46 @@
-import tensorflow as tf
-import numpy as np
-import os
 from Models.DQNModel import DQNModel
 from Buffers.ReplayBuffer import ReplayBuffer
+from Agents.BasicAgent import BasicOffPolicyAgent
 
 
-class DQNAgent():
+class DQNAgent(BasicOffPolicyAgent):
 
-    def __init__(self, agent_params):
-        model_params = [agent_params[key] for key in 
-            ['learning_rate', 'state_shape', 'num_actions', 'gamma', 'tau', 'min_epsilon', 'epsilon_decay_rate']]
-        self.model = DQNModel(*model_params)
-        self.buffer = ReplayBuffer(agent_params['buffer_size'], agent_params['state_shape'])
+    def __init__(self, state_space, action_space, load_weights, learning_rate, gradient_clipping, gamma, tau, 
+        min_epsilon, decay_rate, buffer_size):
+        self.model = DQNModel(state_space, action_space, learning_rate, gradient_clipping, gamma, tau, min_epsilon, 
+            decay_rate)
+        self.buffer = ReplayBuffer(buffer_size)
 
-        if 'load_weights' in agent_params:
-            self.model.load_weights(agent_params['load_weights'])
+        if load_weights:
+            self.model.load_weights(load_weights)
 
-        self.save_weights_base_dir = agent_params['save_weights_dir']
-        self.batch_size = agent_params['batch_size']
-        self.last_action = None
+        self.last_actions = None
 
-    def agent_step(self, state):
-        self.last_action = self.model.model_forward(state)
-        return self.last_action
+    def step(self, state):
+        self.last_actions = self.model.forward(state)
+        return self.last_actions
 
-    def store_transition(self, state, reward, terminal, next_state):
-        self.buffer.store_transition(state, self.last_action, reward, terminal, next_state)
+    def test_step(self, state):
+        return self.model.test_forward(state)
 
-    def get_action(self, state):
-        action = self.model.get_best_action(state)
-        return action
+    def store_transitions(self, states, rewards, terminals, next_states):
+        self.buffer.store_transitions(states, self.last_actions, rewards, terminals, next_states)
 
-    def train_model(self):
-        states, actions, rewards, terminals, next_states = self.buffer.get_transitions(self.batch_size)
+    def train(self, batch_size):
+        losses = {}
 
-        loss_q_values_model = self.model.update_q_values_model(states, actions, rewards,
-            terminals, next_states)
+        if self.buffer.is_sampling_possible(batch_size):
+            states, actions, rewards, terminals, next_states, = self.buffer.get_transitions(batch_size)
 
-        self.model.update_q_values_target()
+            loss_q_values_model = self.model.update_q_values_model(states, actions, rewards, terminals, next_states)
+            self.model.update_q_values_target()
 
-        losses = {'State Action Value Model Loss' : loss_q_values_model}
+            losses = {'State Action Value Model Loss' : loss_q_values_model}
 
         return losses
 
-    def save_weights(self, folder_name):
-        path = os.path.join(self.save_weights_base_dir, self.get_algorithm_name(), folder_name)
+    def save_weights(self, path):
         self.model.save_weights(path)
 
     def load_weights(self, path):
         self.model.load_weights(path)
-
-    def get_algorithm_name(self):
-        return 'DQN'
-
-    def is_train_possible(self):
-        return self.buffer.is_sampling_possible(self.batch_size)

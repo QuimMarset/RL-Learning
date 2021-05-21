@@ -2,53 +2,57 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import os
-from Models.ReinforceActorCritic import CriticQ
+from Models.BasicModels import Critic
 
 class DQNModel:
 
-    def __init__(self, learning_rate, state_shape, num_actions, gamma, tau, min_epsilon, decay_rate):
+    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, gamma, tau, min_epsilon, decay_rate):
+        self.gradient_clipping = gradient_clipping
         self.gamma = gamma
         self.tau = tau
         self.min_epsilon = min_epsilon
         self.decay_rate = decay_rate
-        self.num_actions = num_actions
-
-        self.q_values_model = CriticQ(state_shape, num_actions)
-        self.q_values_model_target = CriticQ(state_shape, num_actions)
-        self.q_values_optimizer = keras.optimizers.Adam(learning_rate)
-
         self.decay_step = 0
 
-    def _select_action(self, q_values):
+        self.q_values_model = Critic(state_space, action_space, uses_action_state_values = True)
+        self.q_values_model_target = Critic(state_space, action_space, uses_action_state_values = True)
+        self.q_values_optimizer = keras.optimizers.Adam(learning_rate)
+
+    def _select_random_actions(self, q_values):
+        num_actions = q_values.shape[1]
+        batch_size = q_values.shape[0]
+        actions = np.random.choice(num_actions, batch_size)
+        return actions
+
+    def _select_best_actions(self, q_values):
+        actions = np.argmax(q_values, axis = -1)
+        return actions
+
+    def _select_actions(self, q_values):
         epsilon = self.min_epsilon + (1.0 - self.min_epsilon)*np.exp(-self.decay_rate*self.decay_step)
         self.decay_step += 1
         random_prob = np.random.choice(1)
+        
         if random_prob < epsilon:
-            action = np.random.choice(self.num_actions)
+            actions = self._select_random_actions(q_values)
         else:
-            action = np.argmax(q_values)
-        return action
+            actions = self._select_best_actions(q_values)
+        
+        return actions
 
-    def _select_best_action(self, q_values):
-        action = np.argmax(q_values)
-        return action
+    def forward(self, states):
+        q_values = self.q_values_model.forward(states)
+        actions = self._select_actions(q_values.numpy())
+        return actions
 
-    def model_forward(self, state):
-        state = tf.expand_dims(state, axis = 0)
+    def test_forward(self, state):
         q_values = self.q_values_model.forward(state)
-        action = self._select_action(q_values.numpy()[0])
-        return action
-
-    def get_best_action(self, state):
-        state = tf.expand_dims(state, axis = 0)
-        q_values = self.q_values_model.forward(state)
-        action = self._select_best_action(q_values.numpy()[0])
+        action = self._select_best_actions(q_values.numpy())
         return action
 
     def _get_q_values_action(self, q_values, actions):
         batch_size = q_values.shape[0]
         indices_dim_batch = tf.constant(range(batch_size), shape = (batch_size, 1))
-        actions = tf.convert_to_tensor(actions, dtype = tf.int32)
         indices = tf.concat([indices_dim_batch, tf.expand_dims(actions, axis = -1)], axis = -1)
         q_values_actions = tf.gather_nd(q_values, indices)
         return q_values_actions
@@ -67,6 +71,10 @@ class DQNModel:
         
         trainable_variables = self.q_values_model.get_trainable_variables()
         grads = tape.gradient(loss, trainable_variables)
+
+        if self.gradient_clipping:
+            grads, _ = tf.clip_by_global_norm(grads, self.gradient_clipping)
+
         self.q_values_optimizer.apply_gradients(zip(grads, trainable_variables))
         return loss
 
@@ -78,9 +86,9 @@ class DQNModel:
             target_model_weight = target_model_weight*(1 - self.tau) + model_weight*self.tau
 
     def save_weights(self, path):
-        self.q_values_model.save_weights(os.path.join(path, 'DQN/q_values_model_weights'))
-        self.q_values_model_target.save_weights(os.path.join(path,'DQN/q_values_model_target_weights'))
+        self.q_values_model.save_weights(os.path.join(path, 'q_values_model_weights'))
+        self.q_values_model_target.save_weights(os.path.join(path,'q_values_model_target_weights'))
 
     def load_weights(self, path):
-        self.q_values_model.load_weights(os.path.join(path, 'DQN/q_values_model_weights'))
-        self.q_values_model_target.load_weights(os.path.join(path,'DQN/q_values_model_target_weights'))
+        self.q_values_model.load_weights(os.path.join(path, 'q_values_model_weights'))
+        self.q_values_model_target.load_weights(os.path.join(path,'q_values_model_target_weights'))

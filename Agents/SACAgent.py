@@ -1,55 +1,48 @@
-import tensorflow as tf
-import numpy as np
-from Models.SACModel import SACModel
+from Models.SACModel import SACModelContinuous, SACModelDiscrete
 from Buffers.ReplayBuffer import ReplayBuffer
+from Agents.BasicAgent import BasicOffPolicyAgent
 
-class SACAgent():
 
-    def __init__(self, agent_params):
-        model_params = [agent_params[key] for key in ['learning_rate', 'state_shape', 'num_actions', 'gamma', 'tau', 'alpha']]
-        self.model = SACModel(*model_params)
-        self.buffer = ReplayBuffer(agent_params['buffer_size'], agent_params['state_shape'])
+class SACAgent(BasicOffPolicyAgent):
 
-        if 'load_weights' in agent_params:
-            self.model.load_weights(agent_params['load_weights'])
+    def __init__(self, state_space, action_space, learning_rate, load_weights, gradient_clipping, gamma, tau, alpha, 
+        buffer_size):
+        model_class = SACModelContinuous if action_space.has_continuous_actions() else SACModelDiscrete
+        self.model = model_class(state_space, action_space, learning_rate, gamma, tau, alpha, gradient_clipping)
+        self.buffer = ReplayBuffer(buffer_size)
 
-        self.save_weights_base_dir = agent_params['save_weights_dir']
-        self.batch_size = agent_params['batch_size']
-        self.last_action = None
+        if load_weights:
+            self.model.load_weights(load_weights)
 
-    def agent_step(self, state):
-        self.last_action = self.model.model_forward(state)
-        return self.last_action
+        self.last_actions = None
 
-    def store_transition(self, state, reward, terminal, next_state):
-        self.buffer.store_transition(state, self.last_action, reward, terminal, next_state)
+    def step(self, states):
+        self.last_actions = self.model.forward(states)
+        return self.last_actions
 
-    def get_action(self, state):
-        action = self.model.model_forward(state)
+    def test_step(self, state):
+        action = self.model.test_forward(state)
         return action
 
-    def train_model(self):
-        states, actions, rewards, terminals, next_states = self.buffer.get_transitions(self.batch_size)
+    def store_transitions(self, states, rewards, terminals, next_states):
+        self.buffer.store_transitions(states, self.last_actions, rewards, terminals, next_states)
 
-        loss_actor = self.model.update_actor(states)
+    def train(self, batch_size):
+        losses = {}
 
-        loss_critic_1, loss_critic_2 = self.model.update_critics(states, actions, rewards, terminals, next_states)
+        if self.buffer.is_sampling_possible(batch_size):
+            states, actions, rewards, terminals, next_states = self.buffer.get_transitions(batch_size)
 
-        self.model.update_target_critics()
+            loss_actor = self.model.update_actor(states)
+            loss_critic_1, loss_critic_2 = self.model.update_critics(states, actions, rewards, terminals, next_states)
+            self.model.update_target_critics()
 
-        losses = {'Actor Loss' : loss_actor, 'Critic 1 Loss': loss_critic_1, 'Critic 2 Loss' : loss_critic_2}
+            losses = {'Actor Loss' : loss_actor, 'Critic 1 Loss': loss_critic_1, 'Critic 2 Loss' : loss_critic_2}
 
         return losses
 
-    def save_weights(self, folder_name):
-        path = os.path.join(self.save_weights_base_dir, self.get_algorithm_name(), folder_name)
+    def save_weights(self, path):
         self.model.save_weights(path)
 
     def load_weights(self, path):
         self.model.load_weights(path)
-
-    def get_algorithm_name(self):
-        return 'SAC'
-
-    def is_train_possible(self):
-        return self.buffer.is_sampling_possible(self.batch_size)

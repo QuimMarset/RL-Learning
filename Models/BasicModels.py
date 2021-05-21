@@ -1,66 +1,41 @@
-from abc import ABC, abstractmethod
 import tensorflow as tf
 from tensorflow import keras
-
-class Actor(ABC):
-
-    def __init__(self):
-        self.model = keras.Model()
-
-    def forward(self, state):
-        return self.model(state)
-
-    def get_trainable_variables(self):
-        return self.model.trainable_variables
-
-    def load_weights(self, path):
-        self.model.load_weights(path)
-    
-    def save_weights(self, path):
-        self.model.save_weights(path)
+import Models.utils.factory as factory
 
 
-class StochasticContinuousActor(Actor):
+class Actor:
 
-    def __init__(self, state_shape, actions_shape):
-        super().__init__()
-        self._create_model(state_shape, actions_shape)
+    def __init__(self, state_space, action_space, is_deterministic_policy):
+        self._create_model(state_space, action_space, is_deterministic_policy)
 
-    def _create_model(self, state_shape, num_actions):
-        state_encoder = create_state_encoder(state_shape)
-        mean = keras.layers.Dense(units = actions_shape, activation = 'linear')(state_encoder.output)
-        log_std = keras.layers.Dense(units = actions_shape, activation = 'linear')(state_encoder.output)
-        self.model = keras.Model(state_encoder.input, [mean, log_std])
+    def _get_state_encoder_key(self, state_space):
+        is_state_an_image = state_space.is_state_an_image()
+        key = factory.StateEncoderEnum.Image if is_state_an_image else factory.StateEncoderEnum.Vector
+        return key
 
+    def _get_model_output_key(self, action_space, is_deterministic_policy):
+        has_continuous_actions = action_space.has_continuous_actions()
+        if has_continuous_actions:
+            key = factory.ActorOutputEnum.Action if is_deterministic_policy else factory.ActorOutputEnum.Mean_And_Log_Std
+        else:
+            key = factory.ActorOutputEnum.Probability_Distribution
+        return key
 
-class DeterministicContinuousActor(Actor):
+    def _create_model(self, state_space, action_space, is_deterministic_policy):
+        action_space_shape = action_space.get_action_space_shape()
+        state_shape = state_space.get_state_shape()
 
-    def __init__(self, state_shape):
-        super().__init__()
-        self._create_model(state_shape)
+        kwargs = {'state_shape': state_shape, 'action_shape' : action_space_shape[0], 'num_actions' : action_space_shape[0]}
+        
+        state_encoder_key = self._get_state_encoder_key(state_space)
+        model_output_key = self._get_model_output_key(action_space, is_deterministic_policy)
 
-    def _create_model(self, state_shape):
-        state_encoder = create_state_encoder(state_shape)
-        action = keras.layers.Dense(units = 1, activation = 'tanh')(state_encoder.output)
-        self.model = keras.Model(state_encoder.input, output)
+        model_inputs, state_encoder_output = factory.state_encoder_factory.create(state_encoder_key, **kwargs)
 
+        kwargs['state_encoder_output'] = state_encoder_output
+        model_outputs = factory.actor_output_factory.create(model_output_key, **kwargs)
 
-class DiscreteActor(Actor):
-
-    def __init__(self, state_shape, num_actions):
-        super().__init__()
-        self._create_model(state_shape, num_actions)
-
-    def _create_model(self, state_shape, num_actions):
-        state_encoder = create_state_encoder(state_shape)
-        prob_dist = keras.layers.Dense(units = num_actions, activation = 'softmax')(state_encoder.output)
-        self.model = keras.Model(state_encoder.input, prob_dist)
-
-
-
-class Critic(ABC):
-    def __init__(self):
-        self.model = keras.Model()
+        self.model = keras.Model(model_inputs, model_outputs)
 
     def forward(self, state):
         return self.model(state)
@@ -74,109 +49,66 @@ class Critic(ABC):
     def save_weights(self, path):
         self.model.save_weights(path)
 
-
-class CriticV(Critic):
-
-    def __init__(self, state_shape):
-        super().__init__()
-        self._create_model(state_shape)
-
-    def _create_model(self, state_shape):
-        state_encoder = create_state_encoder(state_shape)
-        v_value = keras.layers.Dense(units = 1, activation = 'linear')(state_encoder.output)
-        self.model = keras.Model(state_encoder.input, v_value)
+    def get_weights(self):
+        return self.model.get_weights()
 
 
-class ContinuousCriticQ(Critic):
+class Critic:
 
-    def __init__(self, state_shape, action_shape):
-        super().__init__()
-        self._create_model(state_shape, action_shape, state_encoder)
+    def __init__(self, state_space, action_space, uses_action_state_values):
+        self._create_model(state_space, action_space, uses_action_state_values)
 
-    def _create_model(self, state_shape, action_shape):
-        state_encoder = create_state_encoder(state_shape)
-        action_input = keras.Input((action_shape))
+    def _get_state_encoder_key(self, state_space, action_space, uses_action_state_values):
+        has_continuous_actions = action_space.has_continuous_actions()
+        is_state_an_image = state_space.is_state_an_image()
 
-        concat = tf.concat([state_encoder.output, action_input], axis = -1)
-        dense_1 = keras.layers.Dense(units = 256, activation = 'relu')(concat)
-        dense_2 = keras.layers.Dense(units = 256, activation = 'relu')(dense_1)
+        if has_continuous_actions and uses_action_state_values:
+            key = factory.StateEncoderEnum.Image_And_Action if is_state_an_image \
+                else factory.StateEncoderEnum.Vector_And_Action
+        else:
+            key = factory.StateEncoderEnum.Image if is_state_an_image else factory.StateEncoderEnum.Vector
 
-        q_value = keras.layers.Dense(units = 1, activation = 'linear')(dense_2)
-        self.model = keras.Model([state_encoder.input, action_input], v_value)
+        return key
 
+    def _get_model_output_key(self, action_space, uses_action_state_values):
+        has_continuous_actions = action_space.has_continuous_actions()
+        
+        if has_continuous_actions:
+            key = factory.CriticOutputEnum.State_Action_Value if uses_action_state_values \
+                else factory.CriticOutputEnum.State_Value
+        else:
+            key = factory.CriticOutputEnum.All_State_Action_Values_For_One_State if uses_action_state_values \
+                else factory.CriticOutputEnum.State_Value
 
-class DiscreteCriticQ(Critic):
+        return key
 
-    def __init__(self, state_shape, num_actions):
-        super().__init__()
-        self._create_model(state_shape, num_actions)
+    def _create_model(self, state_space, action_space, uses_action_state_values):
+        action_space_shape = action_space.get_action_space_shape()
+        state_shape = state_space.get_state_shape()
+        
+        kwargs = {'state_shape': state_shape, 'action_shape' : action_space_shape[0], 'num_actions' : action_space_shape[0]}
+        
+        state_encoder_key = self._get_state_encoder_key(state_space, action_space, uses_action_state_values)
+        model_output_key = self._get_model_output_key(action_space, uses_action_state_values)
 
-    def _create_model(self, state_shape, num_actions):
-        state_encoder = create_state_encoder(state_shape)
-        q_values = keras.layers.Dense(units = num_actions, activation = 'linear')(state_encoder.output)
-        self.model = keras.Model(state_encoder.input, q_values)
+        model_inputs, state_encoder_output = factory.state_encoder_factory.create(state_encoder_key, **kwargs)
 
+        kwargs['state_encoder_output'] = state_encoder_output
+        model_outputs = factory.critic_output_factory.create(model_output_key, **kwargs)
 
-def create_state_encoder(state_shape):
-    dims = len(state_shape)
-    if dims < 3:
-        state_encoder = create_feature_vector_state_encoder(state_shape)
-    else:
-        state_encoder = create_image_state_encoder(state_shape)
+        self.model = keras.Model(model_inputs, model_outputs)
 
-    return state_encoder
+    def forward(self, state):
+        return self.model(state)
 
-def create_feature_vector_state_encoder(state_shape):
-    state_input = keras.Input((state_shape))
-    dense_1 = keras.layers.Dense(32, activation = 'relu')(state_input)
-    dense_2 = keras.layers.Dense(64, activation = 'relu')(dense_1)
-    state_encoder = keras.Model(state_input, dense_2)
-    return state_encoder
+    def get_trainable_variables(self):
+        return self.model.trainable_variables
 
-def create_image_state_encoder(state_shape):
-    state_input = keras.Input((state_shape))
-    conv1 = keras.layers.Conv2D(32, 3, activation = 'relu')(state_input)
-    avg_pool1 = keras.layers.AveragePooling2D()(conv1)
+    def load_weights(self, path):
+        self.model.load_weights(path)
+    
+    def save_weights(self, path):
+        self.model.save_weights(path)
 
-    conv2 = keras.layers.Conv2D(64, 3, activation = 'relu')(avg_pool1)
-    avg_pool2 = keras.layers.AveragePooling2D()(conv2)
-
-    conv3 = keras.layers.Conv2D(128, 3, activation = 'relu')(avg_pool2)
-    avg_pool3 = keras.layers.AveragePooling2D()(conv3)
-
-    flatten = keras.layers.Flatten()(avg_pool3)
-    state_encoder = keras.Model(state_input, flatten)
-    return state_encoder
-
-"""
-Actor:
-    - Determinista:
-        sortida = 1 acció
-
-    - Estocàstic
-        sortida = distribució prob del que samplejar
-        en test retornem mitjana de la distribució
-
-
-    - Espai d'accions continu
-    - Espai d'accions discret
-
-
-    - Entrada vector característiques 1D
-
-    - Entrada imatge RGB o Grisos
-        - Frame stacking
-        - LSTM
-
-
-Critic:
-
-    - State value
-    - State action value
-
-    - Entrada vector 1D
-
-    - Entrada imatge
-        - Frame stacking
-        -LSTM
-"""
+    def get_weights(self):
+        return self.model.get_weights()

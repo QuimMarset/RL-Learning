@@ -1,32 +1,53 @@
-from config import *
-from evaluator import Evaluator
 import traceback
+from utils.parser import parse_arguments
+from utils.factory import environment_factory, agent_factory, trainer_factory, multi_environment_wrapper_factory
+from utils.constants import *
+from utils.evaluator import Evaluator
+import os
 
 
 if __name__ == "__main__":
 
     input_arguments = parse_arguments()
 
-    environment = create_environment(input_arguments)
-    num_actions = environment.get_num_actions()
-    agent = create_agent(input_arguments, num_actions)
+    environment_name = input_arguments.environment
+    algorithm = input_arguments.algorithm
+
+    environment_constants['env_name'] = environment_name
+    environment_constants['render'] = input_arguments.play
+
+    if environment_constants['num_envs'] <= 1 or input_arguments.play:
+        environment = environment_factory.create(environment_name, **environment_constants)
+    else:
+        environment = multi_environment_wrapper_factory.create(environment_name, **environment_constants)
+    
+    agent_constants['state_space'] = environment.get_state_space()
+    agent_constants['action_space'] = environment.get_action_space()
+    agent_constants['load_weights'] = input_arguments.load_weights
+
+    agent = agent_factory.create(algorithm, **agent_constants)
     
     try:
 
         if input_arguments.play:
-            test_params = get_test_parameters(input_arguments)
             evaluator = Evaluator(environment, agent)
-            evaluator.play_episodes(*test_params)
+            evaluator.play_episodes(**test_constants)
 
         else:
-            train_params = get_train_parameters(input_arguments)
-            trainer = create_trainer(input_arguments, environment, agent)
-            trainer.train_iterations(*train_params)
+
+            folder_name = algorithm + '_' + environment_name
+            trainer_constants['summary_writer_path'] = os.path.join(trainer_constants['summary_writer_path'], folder_name)
+            trainer_constants['save_weights_path'] = os.path.join(trainer_constants['save_weights_path'], folder_name)
+
+            trainer = trainer_factory.create(algorithm, environment, agent, **trainer_constants)
+            
+            trainer.train_iterations(trainer_constants['iterations'], trainer_constants['iteration_steps'], 
+                trainer_constants['batch_size'])
 
     except KeyboardInterrupt:
+        environment.end()
         if not input_arguments.play:
             trainer.save_last_weights()
 
     except:
         traceback.print_exc()
-

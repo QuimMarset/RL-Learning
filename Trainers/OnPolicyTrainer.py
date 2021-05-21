@@ -2,17 +2,17 @@ from utils.summary_writer import SummaryWritter
 import os
 
 
-class OffPolicyTrainer():
+class OnPolicyTrainer:
 
     def __init__(self, environment, agent, summary_writer_path, save_weights_path):
         self.environment = environment
         self.agent = agent
         self.save_weights_path = save_weights_path
-        
+
         self.states = self.environment.start()
-        
-        self.summary_writer = SummaryWritter(summary_writer_path, environment.get_state_space())
-    
+
+        self.summary_writer = SummaryWritter(summary_writer_path, self.environment.get_state_space())
+  
     def train_iterations(self, iterations, iteration_steps, batch_size):
 
         for iteration in range(iterations):
@@ -31,10 +31,11 @@ class OffPolicyTrainer():
 
                 self.states = next_states
 
-                losses = self.agent.train(batch_size)
-            
-            if losses:
-                self.summary_writer.write_iteration_information(iteration, losses)
+            losses = self.agent.train(batch_size)
+        
+            self.agent.reset_buffer()
+
+            self.summary_writer.write_iteration_information(iteration, losses)
 
             if iteration%20 == 0 or iteration == iterations - 1:
                 self.save_weights(iteration)

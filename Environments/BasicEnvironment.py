@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class BasicSingleEnvironment(ABC):
+class BasicEnvironment(ABC):
 
     @abstractmethod
     def start(self):
@@ -15,18 +15,8 @@ class BasicSingleEnvironment(ABC):
     def end(self):
         pass
 
+    def get_state_space(self):
+        return self.state_space
 
-
-class BasicMultiEnvironment(ABC):
-
-    @abstractmethod
-    def start(self):
-        pass
-
-    @abstractmethod
-    def step(self, actions):
-        pass
-
-    @abstractmethod
-    def end(self):
-        pass
+    def get_action_space(self):
+        return self.action_space
