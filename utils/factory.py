@@ -1,5 +1,5 @@
 from utils.builder import *
-from Environments.SingleEnvironmentWrapper import SingleEnvironmentWrapper
+from Environments.wrappers.SingleEnvironmentWrapper import SingleEnvironmentWrapper
 
 class Factory:
 
@@ -56,6 +56,7 @@ environment_factory = EnvironmentFactory()
 environment_factory.register_builder("basic", create_vizdoom_environment)
 environment_factory.register_builder("health_gathering", create_vizdoom_environment)
 environment_factory.register_builder("deadly_corridor", create_vizdoom_environment)
+environment_factory.register_builder("my_way_home", create_vizdoom_environment)
 environment_factory.register_builder("defend_the_center", create_vizdoom_environment)
 environment_factory.register_builder("d2_navigation", create_vizdoom_environment)
 environment_factory.register_builder("LunarLander-v2", create_vector_state_disc_act_gym_environment)

@@ -3,6 +3,7 @@ from Environments.BasicEnvironment import BasicEnvironment
 from Environments.Space import MultiEnvironmentStateSpaceWrapper
 import numpy as np
 
+
 def environment_worker_function(env_function, pipe_end, **env_params):
     environment = env_function(**env_params)
 
@@ -44,7 +45,7 @@ def environment_worker_function(env_function, pipe_end, **env_params):
 
 class MultiEnvironmentWrapper(BasicEnvironment):
 
-    def __init__(self, num_envs, env_function, **env_params):
+    def __init__(self, env_function, num_envs, **env_params):
         self.num_envs = num_envs
 
         self.pipes_main, self.pipes_subprocess = zip(*[Pipe() for _ in range(num_envs)])
@@ -98,7 +99,7 @@ class MultiEnvironmentWrapper(BasicEnvironment):
         next_states = np.zeros((self.num_envs, *self.state_shape))
 
         for i in range(len(self.pipes_main)):
-            (msg, data) = self.pipes_main[i].recv()
+            (_, data) = self.pipes_main[i].recv()
             (reward, next_state, terminal) = data
             rewards[i] = reward
             terminals[i] = terminal
@@ -108,5 +109,5 @@ class MultiEnvironmentWrapper(BasicEnvironment):
 
     def reset(self, index):
         self.pipes_main[index].send(("reset", None))
-        (msg, state) = self.pipes_main[index].recv()
+        (_, state) = self.pipes_main[index].recv()
         return state

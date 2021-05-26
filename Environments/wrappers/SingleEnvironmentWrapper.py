@@ -1,6 +1,7 @@
 import numpy as np
 from Environments.BasicEnvironment import BasicEnvironment
 
+
 class SingleEnvironmentWrapper(BasicEnvironment):
 
     def __init__(self, environment):

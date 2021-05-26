@@ -8,12 +8,7 @@ class Evaluator():
         self.environment = environment
         self.agent = agent
 
-    def _add_sleep_between_frames(self, frames_skipped):
-        if frames_skipped > 1:
-            sleep_time = frames_skipped*0.02
-            time.sleep(sleep_time)
-
-    def play_episodes(self, episodes, frames_skipped):
+    def play_episodes(self, episodes):
         episode_rewards = []
         episode_reward = 0
 
@@ -34,8 +29,6 @@ class Evaluator():
                     break
                 else:
                     state = next_state
-
-                self._add_sleep_between_frames(frames_skipped)
 
         self.environment.close()
         print("Avg reward: " + str(np.mean(episode_rewards, axis = 0)))

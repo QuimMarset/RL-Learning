@@ -74,9 +74,11 @@ class PPOCuriosityAgent(BasicOnPolicyAgent):
 
     def save_weights(self, path):
         self.model.save_weights(path)
+        self.curiosity_model.save_weights(path)
 
     def load_weights(self, path):
         self.model.load_weights(path)
+        self.curiosity_model.load_weights(path)
 
     def reset_buffer(self):
         self.buffer.reset_buffer()

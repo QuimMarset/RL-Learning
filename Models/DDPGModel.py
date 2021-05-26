@@ -1,16 +1,17 @@
 import tensorflow as tf
 from tensorflow import keras
-from Models.BasicModels import Actor, Critic
+from Models.BasicModels import build_continuous_deterministic_actor, build_continuous_state_action_critic
 import os
+from Models.utils.common_functions import print_model_to_json_file
 
 class DDPGModel():
 
     def __init__(self, state_space, action_space, learning_rate, gradient_clipping, gamma, tau):
-        self.actor = Actor(state_space, action_space, is_deterministic_policy = True)
-        self.critic = Critic(state_space, action_space, uses_action_state_values = True)
+        self.actor = build_continuous_deterministic_actor(state_space, action_space)
+        self.critic = build_continuous_state_action_critic(state_space, action_space)
         
-        self.actor_target = Actor(state_space, action_space, is_deterministic_policy = True)
-        self.critic_target = Critic(state_space, action_space, uses_action_state_values = True)
+        self.actor_target = self.actor.clone()
+        self.critic_target = self.critic.clone()
         
         self.actor_optimizer = keras.optimizers.Adam(learning_rate)
         self.critic_optimizer = keras.optimizers.Adam(learning_rate)
@@ -82,6 +83,10 @@ class DDPGModel():
         self.critic.save_weights(os.path.join(path, 'critic_weights'))
         self.actor_target.save_weights(os.path.join(path, 'actor_target_weights'))
         self.critic_target.save_weights(os.path.join(path, 'critic_target_weights'))
+        print_model_to_json_file(self.actor, os.path.join(path, 'actor_model'))
+        print_model_to_json_file(self.critic, os.path.join(path, 'actor_model'))
+        print_model_to_json_file(self.actor_target, os.path.join(path, 'actor_target_model'))
+        print_model_to_json_file(self.critic_target, os.path.join(path, 'critic_target_model'))
 
     def load_weights(self, path):
         self.actor.load_weights(os.path.join(path, 'actor_weights'))

@@ -16,8 +16,13 @@ if __name__ == "__main__":
     environment_constants['env_name'] = environment_name
     environment_constants['render'] = input_arguments.play
 
-    if environment_constants['num_envs'] <= 1 or input_arguments.play:
+    if input_arguments.play:
+        environment_constants['frames_skipped'] = 1
         environment = environment_factory.create(environment_name, **environment_constants)
+    
+    elif environment_constants['num_envs'] <= 1:
+        environment = environment_factory.create(environment_name, **environment_constants)
+    
     else:
         environment = multi_environment_wrapper_factory.create(environment_name, **environment_constants)
     
@@ -31,7 +36,7 @@ if __name__ == "__main__":
 
         if input_arguments.play:
             evaluator = Evaluator(environment, agent)
-            evaluator.play_episodes(**test_constants)
+            evaluator.play_episodes(test_constants['episodes'])
 
         else:
 

@@ -2,7 +2,8 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import os
-from Models.BasicModels import Critic
+from Models.BasicModels import build_discrete_state_action_critic
+from Models.utils.common_functions import print_model_to_json_file
 
 class DQNModel:
 
@@ -14,8 +15,8 @@ class DQNModel:
         self.decay_rate = decay_rate
         self.decay_step = 0
 
-        self.q_values_model = Critic(state_space, action_space, uses_action_state_values = True)
-        self.q_values_model_target = Critic(state_space, action_space, uses_action_state_values = True)
+        self.q_values_model = build_discrete_state_action_critic(state_space, action_space)
+        self.q_values_model_target = self.q_values_model.clone()
         self.q_values_optimizer = keras.optimizers.Adam(learning_rate)
 
     def _select_random_actions(self, q_values):
@@ -88,6 +89,8 @@ class DQNModel:
     def save_weights(self, path):
         self.q_values_model.save_weights(os.path.join(path, 'q_values_model_weights'))
         self.q_values_model_target.save_weights(os.path.join(path,'q_values_model_target_weights'))
+        print_model_to_json_file(self.q_values_model, os.path.join(path, 'q_values_model'))
+        print_model_to_json_file(self.q_values_model_target, os.path.join(path, 'q_values_target_model'))
 
     def load_weights(self, path):
         self.q_values_model.load_weights(os.path.join(path, 'q_values_model_weights'))

@@ -48,8 +48,8 @@ class A2CBuffer():
         return returns
 
     def _compute_advantages(self, bootstrapped_values):
-        values = np.append(self.values, bootstrapped_values)
-        td_errors = self.rewards + self.gamma*values[1:]*(1 - self.terminals) - values[:-1]
+        values = np.append(self.values, np.expand_dims(bootstrapped_values, axis = -1), axis = -1)
+        td_errors = self.rewards + self.gamma*values[:, 1:]*(1 - self.terminals) - values[:, :-1]
         advantages = self._discount(td_errors, self.gamma*self.gae_lambda)
         advantages = np.reshape(advantages, (-1))
         return advantages

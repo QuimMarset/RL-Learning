@@ -41,3 +41,9 @@ def compute_pdf_of_bounded_gaussian_samples(mus, log_sigmas, unbounded_samples):
     log_jacobian_determinant = tf.reduce_sum(tf.math.log(1 - tf.tanh(unbounded_samples)**2 + 1e-6), axis = -1)
     samples_log_prob = unbounded_samples_log_prob - log_jacobian_determinant
     return samples_log_prob
+
+def print_model_to_json_file(model, file_path):
+    with open(file_path, "w") as write_file:
+        json_arguments = {'indent' : 4, 'separators' : (', ', ': ')}
+        json_string = model.to_json(**json_arguments)
+        write_file.write(json_string)

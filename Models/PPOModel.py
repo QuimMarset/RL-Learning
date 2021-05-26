@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 import os
-from Models.BasicModels import Actor, Critic
+from Models.BasicModels import build_discrete_actor, build_continuous_stochastic_actor, build_state_value_critic
 from abc import ABC, abstractmethod
 from Models.utils.common_functions import *
 
@@ -9,14 +9,18 @@ from Models.utils.common_functions import *
 class PPOModel(ABC):
 
     def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon):
-        self.actor = Actor(state_space, action_space, is_deterministic_policy = False)
-        self.critic = Critic(state_space, action_space, uses_action_state_values = False)
+        self.actor = self._create_actor(state_space, action_space)
+        self.critic = build_state_value_critic(state_space)
         self.actor_optimizer = keras.optimizers.Adam(learning_rate)
         self.critic_optimizer = keras.optimizers.Adam(learning_rate)
 
         self.learning_rate = learning_rate
         self.epsilon = epsilon
         self.gradient_clipping = gradient_clipping
+
+    @abstractmethod
+    def _create_actor(self, state_space, action_space):
+        pass
     
     @abstractmethod
     def forward(self, states):
@@ -48,6 +52,8 @@ class PPOModel(ABC):
     def save_weights(self, path):
         self.actor.save_weights(os.path.join(path, 'actor_weights'))
         self.critic.save_weights(os.path.join(path, 'critic_weights'))
+        print_model_to_json_file(self.actor, os.path.join(path, 'actor_model'))
+        print_model_to_json_file(self.critic, os.path.join(path, 'critic_model'))
 
     def load_weights(self, path):
         self.actor.load_weights(os.path.join(path, 'actor_weights'))
@@ -58,6 +64,9 @@ class PPOModelDiscrete(PPOModel):
 
     def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon):
         super().__init__(state_space, action_space, learning_rate, gradient_clipping, epsilon)
+
+    def _create_actor(self, state_space, action_space):
+        return build_discrete_actor(state_space, action_space)
 
     def forward(self, states):
         values = tf.squeeze(self.critic.forward(states), axis = -1)
@@ -97,6 +106,9 @@ class PPOModelContinuous(PPOModel):
 
     def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon):
         super().__init__(state_space, action_space, learning_rate, gradient_clipping, epsilon)
+
+    def _create_actor(self, state_space, action_space):
+        return build_continuous_stochastic_actor(state_space, action_space)
 
     def forward(self, states):
         values = tf.squeeze(self.critic.forward(states), axis = -1)

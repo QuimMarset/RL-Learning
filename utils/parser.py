@@ -1,8 +1,8 @@
 import argparse
 
 environments = (
-    "basic", "health_gathering", "deadly_corridor", "defend_the_center", "d2_navigation", "LunarLanderContinuous-v2",
-    "LunarLander-v2"
+    "basic", "health_gathering", "deadly_corridor", "my_way_home", "defend_the_center", "d2_navigation", 
+    "LunarLanderContinuous-v2", "LunarLander-v2"
 )
 
 algorithms = (

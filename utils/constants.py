@@ -53,6 +53,4 @@ trainer_constants = {
 
 test_constants = {
     'episodes' : 50,
-    # Possible to use different frame skipping in testing
-    'frames_skipped' : 1 #environment_constants['frames_skipped']
 }

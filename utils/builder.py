@@ -1,23 +1,36 @@
-from Environments import (VizDoomEnvironment, GymImageStateEnvironment, GymVectorStateEnvironment, 
-    MultiEnvironmentWrapper)
+from os import environ
+from Environments import VizDoomEnvironment, GymImageStateEnvironment, GymVectorStateEnvironment
+from Environments.wrappers import FrameResizeWrapper, SkipFramesWrapper, StackFramesWrapper, MultiEnvironmentWrapper
 from Agents import A2CAgent, DDPGAgent, PPOAgent, DQNAgent, SACAgent, PPOCuriosityAgent
 from Trainers import OffPolicyTrainer, OnPolicyTrainer
 
 
+def wrap_frame_based_environment(environment, frame_resize, frames_stacked, frames_skipped):
+    if frame_resize is not ():
+        environment = FrameResizeWrapper.FrameResizeWrapper(environment, frame_resize)
+    if frames_skipped > 1:
+        environment = SkipFramesWrapper.SkipFramesWrapper(environment, frames_skipped)
+    if frames_stacked > 1:
+        environment = StackFramesWrapper.StackFramesWrapper(environment, frames_stacked)
+    return environment
+
 def create_vizdoom_environment(doom_cfgs_path, env_name, frame_resize, frames_stacked, frames_skipped, reward_scale, 
     render, **ignored):
-    return VizDoomEnvironment.VizDoomEnvironment(doom_cfgs_path, env_name, frame_resize, frames_stacked, frames_skipped, 
-        reward_scale, render)
+    environment = VizDoomEnvironment.VizDoomEnvironment(doom_cfgs_path, env_name, reward_scale, render)
+    environment = wrap_frame_based_environment(environment, frame_resize, frames_stacked, frames_skipped)
+    return environment
 
 def create_image_state_cont_act_gym_environment(env_name, frame_resize, frames_stacked, frames_skipped, reward_scale, 
     render, **ignored):
-    return GymImageStateEnvironment.GymImageContActionEnvironment(env_name, frame_resize, frames_stacked, frames_skipped, 
-        reward_scale, render)
+    environment = GymImageStateEnvironment.GymImageContActionEnvironment(env_name, reward_scale, render)
+    environment = wrap_frame_based_environment(environment, frame_resize, frames_stacked, frames_skipped)
+    return environment
 
 def create_image_state_disc_act_gym_environment(env_name, frame_resize, frames_stacked, frames_skipped, reward_scale, 
     render, **ignored):
-    return GymImageStateEnvironment.GymImageDiscreteActionEnvironment(env_name, frame_resize, frames_stacked, 
-        frames_skipped, reward_scale, render)
+    environment = GymImageStateEnvironment.GymImageDiscreteActionEnvironment(env_name, reward_scale, render)
+    environment = wrap_frame_based_environment(environment, frame_resize, frames_stacked, frames_skipped)
+    return environment
 
 def create_vector_state_cont_act_gym_environment(env_name, reward_scale, render, **ignored):
     return GymVectorStateEnvironment.GymVectorContActionEnvironment(env_name, reward_scale, render)
@@ -25,8 +38,8 @@ def create_vector_state_cont_act_gym_environment(env_name, reward_scale, render,
 def create_vector_state_disc_act_gym_environment(env_name, reward_scale, render, **ignored):
     return GymVectorStateEnvironment.GymVectorDiscreteActionEnvironment(env_name, reward_scale, render)
 
-def create_multi_environment_wrapper(env_function, **ignored):
-    return MultiEnvironmentWrapper(env_function)
+def create_multi_environment_wrapper(env_function, num_envs, **env_params):
+    return MultiEnvironmentWrapper.MultiEnvironmentWrapper(env_function, num_envs, **env_params)
 
 
 def create_DDPG_agent(state_space, action_space, load_weights, learning_rate, gradient_clipping, gamma, tau, buffer_size,
