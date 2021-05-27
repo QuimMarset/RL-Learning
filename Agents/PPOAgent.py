@@ -5,14 +5,11 @@ from Agents.BasicAgent import BasicOnPolicyAgent
 
 class PPOAgent(BasicOnPolicyAgent):
 
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon, buffer_size, load_weights,
+    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon, buffer_size, load_models_path,
         gamma, gae_lambda, epochs):
         model_class = PPOModelContinuous if action_space.has_continuous_actions() else PPOModelDiscrete
-        self.model = model_class(state_space, action_space, learning_rate, gradient_clipping, epsilon)
+        self.model = model_class(load_models_path, state_space, action_space, learning_rate, gradient_clipping, epsilon)
         self.buffer = PPOBuffer(buffer_size, state_space, action_space, gamma, gae_lambda)
-
-        if load_weights:
-            self.model.load_weights(load_weights)
        
         self.epochs = epochs
         self.last_values = None
@@ -59,11 +56,8 @@ class PPOAgent(BasicOnPolicyAgent):
         losses = {'Actor Loss' : loss_actor, 'Critic Loss' : loss_critic}
         return losses
 
-    def save_weights(self, path):
-        self.model.save_weights(path)
-
-    def load_weights(self, path):
-        self.model.load_weights(path)
+    def save_model(self, path):
+        self.model.save_models(path)
 
     def reset_buffer(self):
         self.buffer.reset_buffer()

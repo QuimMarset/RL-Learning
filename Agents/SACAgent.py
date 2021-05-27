@@ -5,14 +5,12 @@ from Agents.BasicAgent import BasicOffPolicyAgent
 
 class SACAgent(BasicOffPolicyAgent):
 
-    def __init__(self, state_space, action_space, learning_rate, load_weights, gradient_clipping, gamma, tau, alpha, 
+    def __init__(self, state_space, action_space, learning_rate, load_models_path, gradient_clipping, gamma, tau, alpha, 
         buffer_size):
         model_class = SACModelContinuous if action_space.has_continuous_actions() else SACModelDiscrete
-        self.model = model_class(state_space, action_space, learning_rate, gamma, tau, alpha, gradient_clipping)
+        self.model = model_class(load_models_path, state_space, action_space, learning_rate, gamma, tau, alpha, 
+            gradient_clipping)
         self.buffer = ReplayBuffer(buffer_size)
-
-        if load_weights:
-            self.model.load_weights(load_weights)
 
         self.last_actions = None
 
@@ -41,8 +39,5 @@ class SACAgent(BasicOffPolicyAgent):
 
         return losses
 
-    def save_weights(self, path):
-        self.model.save_weights(path)
-
-    def load_weights(self, path):
-        self.model.load_weights(path)
+    def save_models(self, path):
+        self.model.save_models(path)

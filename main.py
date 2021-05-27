@@ -28,7 +28,7 @@ if __name__ == "__main__":
     
     agent_constants['state_space'] = environment.get_state_space()
     agent_constants['action_space'] = environment.get_action_space()
-    agent_constants['load_weights'] = input_arguments.load_weights
+    agent_constants['load_models_path'] = input_arguments.load_models_path
 
     agent = agent_factory.create(algorithm, **agent_constants)
     
@@ -41,8 +41,8 @@ if __name__ == "__main__":
         else:
 
             folder_name = algorithm + '_' + environment_name
-            trainer_constants['summary_writer_path'] = os.path.join(trainer_constants['summary_writer_path'], folder_name)
-            trainer_constants['save_weights_path'] = os.path.join(trainer_constants['save_weights_path'], folder_name)
+            trainer_constants['summary_path'] = os.path.join(trainer_constants['summary_path'], folder_name)
+            trainer_constants['save_models_path'] = os.path.join(trainer_constants['save_models_path'], folder_name)
 
             trainer = trainer_factory.create(algorithm, environment, agent, **trainer_constants)
             

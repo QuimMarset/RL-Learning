@@ -1,22 +1,31 @@
 import tensorflow as tf
 from tensorflow import keras
 import os
-from Models.BasicModels import build_discrete_actor, build_continuous_stochastic_actor, build_state_value_critic
+from Models.BasicModels import (build_discrete_actor, build_continuous_stochastic_actor, build_state_value_critic,
+    build_model_from_json_file)
 from abc import ABC, abstractmethod
 from Models.utils.common_functions import *
 
 
 class PPOModel(ABC):
 
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon):
-        self.actor = self._create_actor(state_space, action_space)
-        self.critic = build_state_value_critic(state_space)
+    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping, epsilon):
+        self._load_models(load_model_path) if load_model_path else self._create_models(state_space, action_space)
         self.actor_optimizer = keras.optimizers.Adam(learning_rate)
         self.critic_optimizer = keras.optimizers.Adam(learning_rate)
 
         self.learning_rate = learning_rate
         self.epsilon = epsilon
         self.gradient_clipping = gradient_clipping
+
+    def _create_models(self, state_space, action_space):
+        self.actor = self._create_actor(state_space, action_space)
+        self.critic = build_state_value_critic(state_space)
+
+    def _load_models(self, load_models_path):
+        self.actor = build_model_from_json_file(os.path.join(load_models_path, 'actor_model.json'))
+        self.critic = build_model_from_json_file(os.path.join(load_models_path, 'critic_model.json'))
+        self._load_weights(load_models_path)
 
     @abstractmethod
     def _create_actor(self, state_space, action_space):
@@ -49,13 +58,13 @@ class PPOModel(ABC):
         self.critic_optimizer.apply_gradients(zip(grads_critic, trainable_variables))
         return loss_critic
 
-    def save_weights(self, path):
+    def save_models(self, path):
         self.actor.save_weights(os.path.join(path, 'actor_weights'))
         self.critic.save_weights(os.path.join(path, 'critic_weights'))
-        print_model_to_json_file(self.actor, os.path.join(path, 'actor_model'))
-        print_model_to_json_file(self.critic, os.path.join(path, 'critic_model'))
+        self.actor.save_architecture(os.path.join(path, 'actor_model.json'))
+        self.critic.save_architecture(os.path.join(path, 'critic_model.json'))
 
-    def load_weights(self, path):
+    def _load_weights(self, path):
         self.actor.load_weights(os.path.join(path, 'actor_weights'))
         self.critic.load_weights(os.path.join(path, 'critic_weights'))
 

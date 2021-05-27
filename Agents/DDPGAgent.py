@@ -6,13 +6,10 @@ from Agents.BasicAgent import BasicOffPolicyAgent
     
 class DDPGAgent(BasicOffPolicyAgent):
 
-    def __init__(self, state_space, action_space, load_weights, learning_rate, gradient_clipping, gamma, tau, 
+    def __init__(self, state_space, action_space, load_models_path, learning_rate, gradient_clipping, gamma, tau, 
         buffer_size, noise_std):
-        self.model = DDPGModel(state_space, action_space, learning_rate, gradient_clipping, gamma, tau)
+        self.model = DDPGModel(load_models_path, state_space, action_space, learning_rate, gradient_clipping, gamma, tau)
         self.buffer = ReplayBuffer(buffer_size)
-
-        if load_weights:
-            self.model.load_weights(load_weights)
         
         self.noise_std = noise_std
         self.max_action = action_space.get_max_action()
@@ -46,8 +43,5 @@ class DDPGAgent(BasicOffPolicyAgent):
         
         return losses
     
-    def save_weights(self, path):
-        self.model.save_weights(path)
-
-    def load_weights(self, path):
-        self.model.load_weights(path)
+    def save_model(self, path):
+        self.model.save_models(path)

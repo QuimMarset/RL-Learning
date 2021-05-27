@@ -6,19 +6,16 @@ from Models.ICMModel import ICMModelDiscrete, ICMModelContinuous
 
 class PPOCuriosityAgent(BasicOnPolicyAgent):
 
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon, buffer_size, load_weights,
+    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon, buffer_size, load_models_path,
         gamma, gae_lambda, epochs, beta, intrinsic_reward_scaling):
         self.buffer = PPOBuffer(buffer_size, state_space, action_space, gamma, gae_lambda)
         
         model_class = PPOModelContinuous if action_space.has_continuous_actions() else PPOModelDiscrete
-        self.model = model_class(state_space, action_space, learning_rate, gradient_clipping, epsilon)
+        self.model = model_class(load_models_path, state_space, action_space, learning_rate, gradient_clipping, epsilon)
         
         curiosity_model_class = ICMModelContinuous if action_space.has_continuous_actions() else ICMModelDiscrete
-        self.curiosity_model = curiosity_model_class(state_space, action_space, learning_rate, gradient_clipping,
-            beta, intrinsic_reward_scaling)
-
-        if load_weights:
-            self.model.load_weights(load_weights)
+        self.curiosity_model = curiosity_model_class(load_models_path, state_space, action_space, learning_rate, 
+            gradient_clipping, beta, intrinsic_reward_scaling)
        
         self.epochs = epochs
         self.last_values = None
@@ -72,13 +69,9 @@ class PPOCuriosityAgent(BasicOnPolicyAgent):
             'Inverse Loss' : inverse_loss}
         return losses
 
-    def save_weights(self, path):
-        self.model.save_weights(path)
-        self.curiosity_model.save_weights(path)
-
-    def load_weights(self, path):
-        self.model.load_weights(path)
-        self.curiosity_model.load_weights(path)
+    def save_model(self, path):
+        self.model.save_models(path)
+        self.curiosity_model.save_models(path)
 
     def reset_buffer(self):
         self.buffer.reset_buffer()

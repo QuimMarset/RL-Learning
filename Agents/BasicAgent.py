@@ -20,11 +20,7 @@ class BasicAgent(ABC):
         pass
 
     @abstractmethod
-    def load_weights(self, path):
-        pass
-
-    @abstractmethod
-    def save_weights(self, path):
+    def save_model(self, path):
         pass
 
 

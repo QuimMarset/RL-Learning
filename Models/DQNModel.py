@@ -2,12 +2,12 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import os
-from Models.BasicModels import build_discrete_state_action_critic
-from Models.utils.common_functions import print_model_to_json_file
+from Models.BasicModels import build_discrete_state_action_critic, build_model_from_json_file
 
 class DQNModel:
 
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, gamma, tau, min_epsilon, decay_rate):
+    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping, gamma, tau, 
+        min_epsilon, decay_rate):
         self.gradient_clipping = gradient_clipping
         self.gamma = gamma
         self.tau = tau
@@ -15,9 +15,17 @@ class DQNModel:
         self.decay_rate = decay_rate
         self.decay_step = 0
 
-        self.q_values_model = build_discrete_state_action_critic(state_space, action_space)
-        self.q_values_model_target = self.q_values_model.clone()
+        self._load_models(load_model_path) if load_model_path else self._create_models(state_space, action_space)
         self.q_values_optimizer = keras.optimizers.Adam(learning_rate)
+
+    def _create_models(self, state_space, action_space):
+        self.q_values_model = build_discrete_state_action_critic(state_space, action_space)
+        self.target_q_values_model = self.q_values_model.clone()
+
+    def _load_models(self, load_model_path):
+        self.q_values_model = build_model_from_json_file(os.path.join(load_model_path, 'q_values_model.json'))
+        self.target_q_values_model = build_model_from_json_file(os.path.join(load_model_path, 'target_q_values_model.json'))
+        self._load_weights(load_model_path)
 
     def _select_random_actions(self, q_values):
         num_actions = q_values.shape[1]
@@ -63,7 +71,7 @@ class DQNModel:
             q_values = self.q_values_model.forward(states)
             q_values_actions = self._get_q_values_action(q_values, actions)
             
-            q_target_values = self.q_values_model_target.forward(next_states)
+            q_target_values = self.target_q_values_model.forward(next_states)
             q_max_target_values = tf.reduce_max(q_target_values, axis = -1)
 
             y = rewards + self.gamma*(1 - terminals)*q_max_target_values
@@ -81,17 +89,17 @@ class DQNModel:
 
     def update_q_values_target(self):
         model_weights = self.q_values_model.get_weights()
-        target_model_weights = self.q_values_model_target.get_weights()
+        target_model_weights = self.target_q_values_model.get_weights()
 
         for model_weight, target_model_weight in zip(model_weights, target_model_weights):
             target_model_weight = target_model_weight*(1 - self.tau) + model_weight*self.tau
 
-    def save_weights(self, path):
+    def save_models(self, path):
         self.q_values_model.save_weights(os.path.join(path, 'q_values_model_weights'))
-        self.q_values_model_target.save_weights(os.path.join(path,'q_values_model_target_weights'))
-        print_model_to_json_file(self.q_values_model, os.path.join(path, 'q_values_model'))
-        print_model_to_json_file(self.q_values_model_target, os.path.join(path, 'q_values_target_model'))
+        self.target_q_values_model.save_weights(os.path.join(path,'target_q_values_model_weights'))
+        self.q_values_model.save_architecture(os.path.join(path, 'q_values_model.json'))
+        self.target_q_values_model.save_architecture(os.path.join(path, 'target_q_values_model.json'))
 
-    def load_weights(self, path):
+    def _load_weights(self, path):
         self.q_values_model.load_weights(os.path.join(path, 'q_values_model_weights'))
-        self.q_values_model_target.load_weights(os.path.join(path,'q_values_model_target_weights'))
+        self.target_q_values_model.load_weights(os.path.join(path,'target_q_values_model_weights'))

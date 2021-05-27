@@ -15,7 +15,8 @@ def parse_arguments():
 
     parser.add_argument("algorithm", help = "RL algorithm to use", choices = algorithms)
     parser.add_argument("environment", help = "Environment to use", choices = environments)
-    parser.add_argument("--load_weights", default = None, help = "Load model weights stored in the specified path")
+    parser.add_argument("--load_models_path", default = None, 
+        help = "Path containing the models's architecture and weights to load")
     parser.add_argument("--play", action = "store_true", help = "Set to evaluate mode")
 
     args = parser.parse_args()

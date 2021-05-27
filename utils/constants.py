@@ -44,8 +44,8 @@ agent_constants = {
 }
 
 trainer_constants = {
-    'save_weights_path' : './Weights',
-    'summary_writer_path' : './Summary/train',
+    'save_models_path' : './Weights',
+    'summary_path' : './Summary/train',
     'iterations' : 400,
     'iteration_steps' : 300,
     'batch_size' : 64,

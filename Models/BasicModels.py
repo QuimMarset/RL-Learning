@@ -1,6 +1,6 @@
-from tensorflow.keras import Model
+from tensorflow import keras
 from Models.utils.builder import *
-
+from json import load, dumps
 
 class Model:
 
@@ -31,9 +31,19 @@ class Model:
         cloned_instance._set_model(self.model)
         return cloned_instance
 
-    def to_json(self, **kwargs):
-        return self.model.to_json(**kwargs)
+    def save_architecture(self, file_path):
+        with open(file_path, "w") as file:
+            json_arguments = {'indent' : 4, 'separators' : (', ', ': ')}
+            json_string = self.model.to_json(**json_arguments)
+            file.write(json_string)
 
+
+def build_model_from_json_file(json_file_path):
+    with open(json_file_path) as file:
+        dict = load(file)
+    json_string = dumps(dict)
+    model = keras.models.model_from_json(json_string)
+    return Model(model)
 
 def build_discrete_actor(state_space, action_space):
     model_inputs, state_encoder_output = create_state_encoder(state_space)

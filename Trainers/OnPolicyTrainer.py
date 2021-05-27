@@ -4,14 +4,14 @@ import os
 
 class OnPolicyTrainer:
 
-    def __init__(self, environment, agent, summary_writer_path, save_weights_path):
+    def __init__(self, environment, agent, summary_path, save_models_path):
         self.environment = environment
         self.agent = agent
-        self.save_weights_path = save_weights_path
+        self.save_models_path = save_models_path
 
         self.states = self.environment.start()
 
-        self.summary_writer = SummaryWritter(summary_writer_path, self.environment.get_state_space())
+        self.summary_writer = SummaryWritter(summary_path, self.environment.get_state_space())
   
     def train_iterations(self, iterations, iteration_steps, batch_size):
 
@@ -45,9 +45,9 @@ class OnPolicyTrainer:
         self.environment.end()
 
     def save_last_weights(self):
-        path = os.path.join(self.save_weights_path, "End")
+        path = os.path.join(self.save_models_path, "End")
         self.agent.save_weights(path)
 
     def save_weights(self, iteration):
-        path = os.path.join(self.save_weights_path, str(iteration))
+        path = os.path.join(self.save_models_path, str(iteration))
         self.agent.save_weights(path)

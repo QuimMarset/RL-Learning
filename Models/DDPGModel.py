@@ -1,24 +1,32 @@
+import os
 import tensorflow as tf
 from tensorflow import keras
-from Models.BasicModels import build_continuous_deterministic_actor, build_continuous_state_action_critic
-import os
-from Models.utils.common_functions import print_model_to_json_file
+from Models.BasicModels import (build_continuous_deterministic_actor, build_continuous_state_action_critic,
+    build_model_from_json_file)
 
 class DDPGModel():
 
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, gamma, tau):
-        self.actor = build_continuous_deterministic_actor(state_space, action_space)
-        self.critic = build_continuous_state_action_critic(state_space, action_space)
-        
-        self.actor_target = self.actor.clone()
-        self.critic_target = self.critic.clone()
-        
+    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping, gamma, tau):
+        self._load_models(load_model_path) if load_model_path else self._create_models(state_space, action_space)
         self.actor_optimizer = keras.optimizers.Adam(learning_rate)
         self.critic_optimizer = keras.optimizers.Adam(learning_rate)
         
         self.gamma = gamma
         self.tau = tau
         self.gradient_clipping = gradient_clipping
+
+    def _create_models(self, state_space, action_space):
+        self.actor = build_continuous_deterministic_actor(state_space, action_space)
+        self.critic = build_continuous_state_action_critic(state_space, action_space)
+        self.actor_target = self.actor.clone()
+        self.critic_target = self.critic.clone()
+
+    def _load_models(self, load_model_path):
+        self.actor = build_model_from_json_file(os.path.join(load_model_path, 'actor_model.json'))
+        self.critic = build_model_from_json_file(os.path.join(load_model_path, 'critic_model.json'))
+        self.actor_target = build_model_from_json_file(os.path.join(load_model_path, 'actor_target_model.json'))
+        self.critic_target = build_model_from_json_file(os.path.join(load_model_path, 'critic_target_model.json'))
+        self._load_weights(load_model_path)
         
     def forward(self, states):
         actions = self.actor.forward(states).numpy()
@@ -78,17 +86,17 @@ class DDPGModel():
         for critic_weight, critic_target_weight in zip(critic_weights, critic_target_weights):
             critic_target_weight = critic_target_weight*(1 - self.tau) + critic_weight*self.tau
 
-    def save_weights(self, path):
+    def save_models(self, path):
         self.actor.save_weights(os.path.join(path, 'actor_weights'))
         self.critic.save_weights(os.path.join(path, 'critic_weights'))
         self.actor_target.save_weights(os.path.join(path, 'actor_target_weights'))
         self.critic_target.save_weights(os.path.join(path, 'critic_target_weights'))
-        print_model_to_json_file(self.actor, os.path.join(path, 'actor_model'))
-        print_model_to_json_file(self.critic, os.path.join(path, 'actor_model'))
-        print_model_to_json_file(self.actor_target, os.path.join(path, 'actor_target_model'))
-        print_model_to_json_file(self.critic_target, os.path.join(path, 'critic_target_model'))
+        self.actor.save_architecture(os.path.join(path, 'actor_model.json'))
+        self.critic.save_architecture(os.path.join(path, 'critic_model.json'))
+        self.actor_target.save_architecture(os.path.join(path, 'actor_target_model.json'))
+        self.critic_target.save_architecture(os.path.join(path, 'critic_target_model.json'))
 
-    def load_weights(self, path):
+    def _load_weights(self, path):
         self.actor.load_weights(os.path.join(path, 'actor_weights'))
         self.critic.load_weights(os.path.join(path, 'critic_weights'))
         self.actor_target.load_weights(os.path.join(path, 'actor_target_weights'))
