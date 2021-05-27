@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 import os
 from Models.BasicModels import (build_discrete_actor, build_continuous_stochastic_actor, build_state_value_critic,
-    build_model_from_json_file)
+    build_saved_model)
 from abc import ABC, abstractmethod
 from Models.utils.common_functions import *
 
@@ -23,9 +23,8 @@ class PPOModel(ABC):
         self.critic = build_state_value_critic(state_space)
 
     def _load_models(self, load_models_path):
-        self.actor = build_model_from_json_file(os.path.join(load_models_path, 'actor_model.json'))
-        self.critic = build_model_from_json_file(os.path.join(load_models_path, 'critic_model.json'))
-        self._load_weights(load_models_path)
+        self.actor = build_saved_model(os.path.join(load_models_path, 'actor'))
+        self.critic = build_saved_model(os.path.join(load_models_path, 'critic'))
 
     @abstractmethod
     def _create_actor(self, state_space, action_space):
@@ -59,14 +58,8 @@ class PPOModel(ABC):
         return loss_critic
 
     def save_models(self, path):
-        self.actor.save_weights(os.path.join(path, 'actor_weights'))
-        self.critic.save_weights(os.path.join(path, 'critic_weights'))
-        self.actor.save_architecture(os.path.join(path, 'actor_model.json'))
-        self.critic.save_architecture(os.path.join(path, 'critic_model.json'))
-
-    def _load_weights(self, path):
-        self.actor.load_weights(os.path.join(path, 'actor_weights'))
-        self.critic.load_weights(os.path.join(path, 'critic_weights'))
+        self.actor.save_model(os.path.join(path, 'actor'))
+        self.critic.save_model(os.path.join(path, 'critic'))
 
 
 class PPOModelDiscrete(PPOModel):

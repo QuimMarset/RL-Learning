@@ -1,6 +1,8 @@
 from tensorflow import keras
-from Models.utils.builder import *
 from json import load, dumps
+import os
+from Models.utils.builder import *
+
 
 class Model:
 
@@ -13,11 +15,9 @@ class Model:
     def get_trainable_variables(self):
         return self.model.trainable_variables
 
-    def load_weights(self, path):
-        self.model.load_weights(path)
-    
-    def save_weights(self, path):
-        self.model.save_weights(path)
+    def save_model(self, save_path):
+        self._save_architecture(os.path.join(save_path, 'model.json'))
+        self.model.save_weights(os.path.join(save_path, 'model'))
 
     def get_weights(self):
         return self.model.get_weights()
@@ -31,18 +31,22 @@ class Model:
         cloned_instance._set_model(self.model)
         return cloned_instance
 
-    def save_architecture(self, file_path):
+    def _save_architecture(self, file_path):
         with open(file_path, "w") as file:
             json_arguments = {'indent' : 4, 'separators' : (', ', ': ')}
             json_string = self.model.to_json(**json_arguments)
             file.write(json_string)
 
 
-def build_model_from_json_file(json_file_path):
-    with open(json_file_path) as file:
+def _build_keras_model_from_json(model_path):
+    with open(os.path.join(model_path, 'model.json')) as file:
         dict = load(file)
     json_string = dumps(dict)
-    model = keras.models.model_from_json(json_string)
+    return keras.models.model_from_json(json_string)
+
+def build_saved_model(model_path):
+    model = _build_keras_model_from_json(model_path)
+    model.load_weights(os.path.join(model_path, 'model'))
     return Model(model)
 
 def build_discrete_actor(state_space, action_space):

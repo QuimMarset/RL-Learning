@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 import os
 from Models.BasicModels import (build_discrete_actor, build_continuous_stochastic_actor, 
-    build_discrete_state_action_critic, build_continuous_state_action_critic, build_model_from_json_file)
+    build_discrete_state_action_critic, build_continuous_state_action_critic, build_saved_model)
 from abc import ABC, abstractmethod
 from Models.utils.common_functions import *
 
@@ -28,12 +28,11 @@ class SACModel(ABC):
         self.critic_target_2 = self.critic_2.clone()
 
     def _load_models(self, load_models_path):
-        self.actor = build_model_from_json_file(os.path.join(load_models_path, 'actor_model.json'))
-        self.critic_1 = build_model_from_json_file(os.path.join(load_models_path, 'critic_1_model.json'))
-        self.critic_2 = build_model_from_json_file(os.path.join(load_models_path, 'critic_2_model.json'))
-        self.critic_target_1 = build_model_from_json_file(os.path.join(load_models_path, 'critic_target_1_model.json'))
-        self.critic_target_2 = build_model_from_json_file(os.path.join(load_models_path, 'critic_target_2_.json'))
-        self._load_weights(load_models_path)
+        self.actor = build_saved_model(os.path.join(load_models_path, 'actor'))
+        self.critic_1 = build_saved_model(os.path.join(load_models_path, 'critic_1'))
+        self.critic_2 = build_saved_model(os.path.join(load_models_path, 'critic_2'))
+        self.critic_target_1 = build_saved_model(os.path.join(load_models_path, 'critic_target_1'))
+        self.critic_target_2 = build_saved_model(os.path.join(load_models_path, 'critic_target_2'))
 
     @abstractmethod
     def _create_actor(self, state_space, action_space):
@@ -105,23 +104,11 @@ class SACModel(ABC):
             target_2_weight = target_2_weight*(1 - self.tau) + critic_2_weight*self.tau
 
     def save_models(self, path):
-        self.actor.save_weights(os.path.join(path, 'actor_weights'))
-        self.critic_1.save_weights(os.path.join(path, 'critic_1_weights'))
-        self.critic_2.save_weights(os.path.join(path, 'critic_2_weights'))
-        self.critic_target_1.save_weights(os.path.join(path, 'critic_1_target_weights'))
-        self.critic_target_2.save_weights(os.path.join(path, 'critic_2_target_weights'))
-        self.actor.save_architecture(os.path.join(path, 'actor_model.json'))
-        self.critic_1.save_architecture(os.path.join(path, 'critic_1_model.json'))
-        self.critic_2.save_architecture(os.path.join(path, 'critic_2_model.json'))
-        self.critic_target_1.save_architecture(os.path.join(path, 'critic_target_1_model.json'))
-        self.critic_target_2.save_architecture(os.path.join(path, 'critic_target_2_.json'))
-
-    def _load_weights(self, path):
-        self.actor.load_weights(os.path.join(path, 'actor_weights'))
-        self.critic_1.load_weights(os.path.join(path, 'critic_1_weights'))
-        self.critic_2.load_weights(os.path.join(path, 'critic_2_weights'))
-        self.critic_target_1.load_weights(os.path.join(path, 'critic_1_target_weights'))
-        self.critic_target_2.load_weights(os.path.join(path, 'critic_2_target_weights'))
+        self.actor.save_model(os.path.join(path, 'actor'))
+        self.critic_1.save_model(os.path.join(path, 'critic_1'))
+        self.critic_2.save_model(os.path.join(path, 'critic_2'))
+        self.critic_target_1.save_model(os.path.join(path, 'critic_1_target'))
+        self.critic_target_2.save_model(os.path.join(path, 'critic_2_target'))
 
 
 class SACModelDiscrete(SACModel):
