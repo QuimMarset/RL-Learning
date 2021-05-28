@@ -36,23 +36,31 @@ class A2CModel(ABC):
         pass
 
     @abstractmethod
-    def update_actor(self, states, actions, advantages):
+    def _compute_actor_loss(tape, states, actions, advantages):
         pass
+
+    def update_actor(self, states, actions, advantages):
+        tape = tf.GradientTape()
+        loss = self._compute_actor_loss(tape, states, actions, advantages)
+        trainable_variables = self.actor.get_trainable_variables()
+        gradients = tape.gradient(loss, trainable_variables)
+        if self.gradient_clipping:
+            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
+        self.actor_optimizer.apply_gradients(zip(gradients, trainable_variables))
+        return loss
 
     def update_critic(self, states, returns):
         with tf.GradientTape() as tape:
             state_values = self.critic.forward(states)
             state_values = tf.squeeze(state_values, axis = -1)
-            loss_critic = keras.losses.MSE(returns, state_values)
+            loss = keras.losses.MSE(returns, state_values)
         
         trainable_variables = self.critic.get_trainable_variables()
-        grads_critic = tape.gradient(loss_critic, trainable_variables)
-
+        gradients = tape.gradient(loss, trainable_variables)
         if self.gradient_clipping:
-            grads_critic, _ = tf.clip_by_global_norm(grads_critic, self.gradient_clipping)
-
-        self.critic_optimizer.apply_gradients(zip(grads_critic, trainable_variables))
-        return loss_critic
+            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
+        self.critic_optimizer.apply_gradients(zip(gradients, trainable_variables))
+        return loss
 
     def save_models(self, path):
         self.actor.save_model(os.path.join(path, 'actor'))
@@ -74,22 +82,13 @@ class A2CModelDiscrete(A2CModel):
         _, action = self.forward(state)
         return action
 
-    def update_actor(self, states, actions, advantages):
-        with tf.GradientTape() as tape:
+    def _compute_actor_loss(self, tape, states, actions, advantages):
+        with tape:
             prob_dists = self.actor.forward(states)
             log_probs_dists = compute_log_of_tensor(prob_dists)
             log_probs_actions = select_values_of_2D_tensor(log_probs_dists, actions)
-            
-            loss_actor = -tf.reduce_mean(log_probs_actions*advantages)
-
-        trainable_variables = self.actor.get_trainable_variables()
-        grads_actor = tape.gradient(loss_actor, trainable_variables)
-
-        if self.gradient_clipping:
-            grads_actor, _ = tf.clip_by_global_norm(grads_actor, self.gradient_clipping)
-
-        self.actor_optimizer.apply_gradients(zip(grads_actor, trainable_variables))
-        return loss_actor
+            loss = -tf.reduce_mean(log_probs_actions*advantages)
+        return loss
 
 
 class A2CModelContinuous(A2CModel):
@@ -107,19 +106,10 @@ class A2CModelContinuous(A2CModel):
         mean, _ = self.actor.forward(state)
         return mean.numpy()
 
-    def update_actor(self, states, actions, advantages):
-        with tf.GradientTape() as tape:
+    def _compute_actor_loss(self, tape, states, actions, advantages):
+        with tape:
             mus, log_sigmas = self.actor.forward(states)
             probs_actions = compute_pdf_of_gaussian_samples(mus, log_sigmas, actions)
             log_probs_actions = compute_log_of_tensor(probs_actions)
-
-            loss_actor = -tf.reduce_mean(log_probs_actions*advantages)
-
-        trainable_variables = self.actor.get_trainable_variables()
-        grads_actor = tape.gradient(loss_actor, trainable_variables)
-        
-        if self.gradient_clipping:
-            grads_actor, _ = tf.clip_by_global_norm(grads_actor, self.gradient_clipping)
-
-        self.actor_optimizer.apply_gradients(zip(grads_actor, trainable_variables))
-        return loss_actor
+            loss = -tf.reduce_mean(log_probs_actions*advantages)
+        return loss

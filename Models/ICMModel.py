@@ -41,19 +41,18 @@ class ICMModel(ABC):
         return intrinsic_rewards
 
     @abstractmethod
-    def _compute_gradients(self, states, actions, next_states, trainable_variables):
+    def _compute_loss(self, tape, states, actions, next_states):
         pass
 
     def update_models(self, states, actions, next_states):
+        tape = tf.GradientTape()
         trainable_variables = (self.inverse_model.get_trainable_variables() + self.forward_model.get_trainable_variables()
             + self.state_encoder.get_trainable_variables())
-
-        gradients, forward_loss, inverse_loss = self._compute_gradients(states, actions, next_states, trainable_variables)
-        
+        loss, forward_loss, inverse_loss = self._compute_loss(tape, states, actions, next_states)
+        gradients = tape.gradient(loss, trainable_variables)
         if self.gradient_clipping:
-            grads, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
-
-        self.optimizer.apply_gradients(zip(grads, trainable_variables))
+            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
+        self.optimizer.apply_gradients(zip(gradients, trainable_variables))
         return forward_loss, inverse_loss
 
     def save_models(self, path):
@@ -67,21 +66,17 @@ class ICMModelDiscrete(ICMModel):
     def _create_forward_model(self, action_space):
         return build_icm_discrete_forward_model(action_space, self.encoded_state_size)
             
-    def _compute_gradients(self, states, actions, next_states, trainable_variables):
-        with tf.GradientTape() as tape:
+    def _compute_gradients(self, tape, states, actions, next_states):
+        with tape:
             encoded_states = self.state_encoder.forward(states)
             encoded_next_states = self.state_encoder.forward(next_states)
             predicted_encoded_next_state = self.forward_model.forward([encoded_states, actions])
-
             predicted_action_probs = self.inverse_model.forward([encoded_states, encoded_next_states])
             sparse_categ_cross_entropy = keras.losses.SparseCategoricalCrossentropy()
-        
             forward_loss = tf.reduce_mean(keras.losses.MSE(encoded_next_states, predicted_encoded_next_state))
             inverse_loss = sparse_categ_cross_entropy(actions, predicted_action_probs)
             loss = (1 - self.beta)*inverse_loss + self.beta*forward_loss
-
-        gradients = tape.gradient(loss, trainable_variables)
-        return gradients, forward_loss, inverse_loss
+        return loss, forward_loss, inverse_loss
 
 
 class ICMModelContinuous(ICMModel):
@@ -89,17 +84,13 @@ class ICMModelContinuous(ICMModel):
     def _create_forward_model(self, action_space):
         return build_icm_continuous_forward_model(action_space, self.encoded_state_size)
             
-    def _compute_gradients(self, states, actions, next_states, trainable_variables):
-        with tf.GradientTape() as tape:
+    def _compute_loss(self, tape, states, actions, next_states):
+        with tape:
             encoded_states = self.state_encoder.forward(states)
             encoded_next_states = self.state_encoder.forward(next_states)
             predicted_encoded_next_state = self.forward_model.forward([encoded_states, actions])
-
             predicted_actions = self.inverse_model.forward([encoded_states, encoded_next_states])
-        
             forward_loss = tf.reduce_mean(keras.losses.MSE(encoded_next_states, predicted_encoded_next_state))
             inverse_loss = tf.reduce_mean(keras.losses.MSE(actions, predicted_actions))
             loss = (1 - self.beta)*inverse_loss + self.beta*forward_loss
-
-        gradients = tape.gradient(loss, trainable_variables)
-        return gradients, forward_loss, inverse_loss
+        return loss, forward_loss, inverse_loss

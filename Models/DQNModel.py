@@ -14,7 +14,6 @@ class DQNModel:
         self.min_epsilon = min_epsilon
         self.decay_rate = decay_rate
         self.decay_step = 0
-
         self._load_models(load_model_path) if load_model_path else self._create_models(state_space, action_space)
         self.q_values_optimizer = keras.optimizers.Adam(learning_rate)
 
@@ -40,12 +39,10 @@ class DQNModel:
         epsilon = self.min_epsilon + (1.0 - self.min_epsilon)*np.exp(-self.decay_rate*self.decay_step)
         self.decay_step += 1
         random_prob = np.random.choice(1)
-        
         if random_prob < epsilon:
             actions = self._select_random_actions(q_values)
         else:
             actions = self._select_best_actions(q_values)
-        
         return actions
 
     def forward(self, states):
@@ -69,27 +66,21 @@ class DQNModel:
         with tf.GradientTape() as tape:
             q_values = self.q_values_model.forward(states)
             q_values_actions = self._get_q_values_action(q_values, actions)
-            
             q_target_values = self.target_q_values_model.forward(next_states)
             q_max_target_values = tf.reduce_max(q_target_values, axis = -1)
-
             y = rewards + self.gamma*(1 - terminals)*q_max_target_values
-
             loss = keras.losses.MSE(q_values_actions, y)
         
         trainable_variables = self.q_values_model.get_trainable_variables()
-        grads = tape.gradient(loss, trainable_variables)
-
+        gradients = tape.gradient(loss, trainable_variables)
         if self.gradient_clipping:
-            grads, _ = tf.clip_by_global_norm(grads, self.gradient_clipping)
-
-        self.q_values_optimizer.apply_gradients(zip(grads, trainable_variables))
+            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
+        self.q_values_optimizer.apply_gradients(zip(gradients, trainable_variables))
         return loss
 
     def update_q_values_target(self):
         model_weights = self.q_values_model.get_weights()
         target_model_weights = self.target_q_values_model.get_weights()
-
         for model_weight, target_model_weight in zip(model_weights, target_model_weights):
             target_model_weight = target_model_weight*(1 - self.tau) + model_weight*self.tau
 

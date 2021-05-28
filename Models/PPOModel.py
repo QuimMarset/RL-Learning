@@ -39,23 +39,31 @@ class PPOModel(ABC):
         pass
 
     @abstractmethod
-    def update_actor(self, states, actions, advantages, old_prob_dists):
+    def _compute_actor_loss(tape, states, actions, advantages, actions_old_log_prob):
         pass
+
+    def update_actor(self, states, actions, advantages, actions_old_log_prob):
+        tape = tf.GradientTape()
+        loss = self._compute_actor_loss(tape, states, actions, advantages, actions_old_log_prob)
+        trainable_variables = self.actor.get_trainable_variables()
+        gradients = tape.gradient(loss, trainable_variables)
+        if self.gradient_clipping:
+            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
+        self.actor_optimizer.apply_gradients(zip(gradients, trainable_variables))
+        return loss
 
     def update_critic(self, states, returns):
         with tf.GradientTape() as tape:
             values = self.critic.forward(states)
             v_values = tf.squeeze(values, axis = -1)
-            loss_critic = keras.losses.MSE(returns, v_values)
+            loss = keras.losses.MSE(returns, v_values)
         
         trainable_variables = self.critic.get_trainable_variables()
-        grads_critic = tape.gradient(loss_critic, trainable_variables)
-        
+        gradients = tape.gradient(loss, trainable_variables)
         if self.gradient_clipping:
-            grads_critic, _ = tf.clip_by_global_norm(grads_critic, self.gradient_clipping)
-
-        self.critic_optimizer.apply_gradients(zip(grads_critic, trainable_variables))
-        return loss_critic
+            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
+        self.critic_optimizer.apply_gradients(zip(gradients, trainable_variables))
+        return loss
 
     def save_models(self, path):
         self.actor.save_model(os.path.join(path, 'actor'))
@@ -79,26 +87,16 @@ class PPOModelDiscrete(PPOModel):
         _, action, _ = self.forward(state)
         return action
 
-    def update_actor(self, states, actions, advantages, actions_old_log_prob):
-        with tf.GradientTape() as tape:
+    def _compute_actor_loss(self, tape, states, actions, advantages, actions_old_log_prob):
+        with tape:
             prob_dists = self.actor.forward(states)
             actions_prob = select_values_of_2D_tensor(prob_dists, actions)
             actions_log_prob = compute_log_of_tensor(actions_prob)
-            
             ratios = tf.exp(actions_log_prob - actions_old_log_prob)
             clip_surrogate = tf.clip_by_value(ratios, 1 - self.epsilon, 1 + self.epsilon)*advantages
-            
-            loss_actor = tf.minimum(ratios*advantages, clip_surrogate)            
-            loss_actor = -tf.reduce_mean(loss_actor)
-
-        trainable_variables = self.actor.get_trainable_variables()
-        grads_actor = tape.gradient(loss_actor, trainable_variables)
-        
-        if self.gradient_clipping:
-            grads_actor, _ = tf.clip_by_global_norm(grads_actor, self.gradient_clipping)
-
-        self.actor_optimizer.apply_gradients(zip(grads_actor, trainable_variables))
-        return loss_actor
+            loss = tf.minimum(ratios*advantages, clip_surrogate)            
+            loss = -tf.reduce_mean(loss)
+        return loss
 
 
 class PPOModelContinuous(PPOModel):
@@ -117,23 +115,14 @@ class PPOModelContinuous(PPOModel):
     def test_forward(self, state):
         mu, _ = self.actor.forward(state)
         return mu.numpy()
-
-    def update_actor(self, states, actions, advantages, actions_old_log_prob):
-        with tf.GradientTape() as tape:
+    
+    def _compute_actor_loss(self, tape, states, actions, advantages, actions_old_log_prob):
+        with tape:
             mus, log_sigmas = self.actor.forward(states)
             actions_prob = compute_pdf_of_gaussian_samples(mus, log_sigmas, actions)
             actions_log_prob = compute_log_of_tensor(actions_prob)
-
             ratios = tf.exp(actions_log_prob - actions_old_log_prob)
             clip_surrogate = tf.clip_by_value(ratios, 1 - self.epsilon, 1 + self.epsilon)*advantages
-            loss_actor = tf.minimum(ratios*advantages, clip_surrogate)
-            loss_actor = -tf.reduce_mean(loss_actor)
-
-        trainable_variables = self.actor.get_trainable_variables()
-        grads_actor = tape.gradient(loss_actor, trainable_variables)
-
-        if self.gradient_clipping:
-            grads_actor, _ = tf.clip_by_global_norm(grads_actor, self.gradient_clipping)
-
-        self.actor_optimizer.apply_gradients(zip(grads_actor, trainable_variables))
-        return loss_actor
+            loss = tf.minimum(ratios*advantages, clip_surrogate)
+            loss = -tf.reduce_mean(loss)
+            return loss
