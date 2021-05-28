@@ -64,9 +64,6 @@ class PPOModel(ABC):
 
 class PPOModelDiscrete(PPOModel):
 
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon):
-        super().__init__(state_space, action_space, learning_rate, gradient_clipping, epsilon)
-
     def _create_actor(self, state_space, action_space):
         return build_discrete_actor(state_space, action_space)
 
@@ -105,9 +102,6 @@ class PPOModelDiscrete(PPOModel):
 
 
 class PPOModelContinuous(PPOModel):
-
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon):
-        super().__init__(state_space, action_space, learning_rate, gradient_clipping, epsilon)
 
     def _create_actor(self, state_space, action_space):
         return build_continuous_stochastic_actor(state_space, action_space)

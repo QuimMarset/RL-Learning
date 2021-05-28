@@ -52,7 +52,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         environment.end()
         if not input_arguments.play:
-            trainer.save_last_weights()
+            trainer.save_last_model()
 
     except:
         traceback.print_exc()

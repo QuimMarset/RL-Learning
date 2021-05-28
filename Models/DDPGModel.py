@@ -2,7 +2,7 @@ import os
 import tensorflow as tf
 from tensorflow import keras
 from Models.BasicModels import (build_continuous_deterministic_actor, build_continuous_state_action_critic,
-    build_model_from_json_file)
+    build_saved_model)
 
 class DDPGModel():
 
@@ -22,11 +22,10 @@ class DDPGModel():
         self.critic_target = self.critic.clone()
 
     def _load_models(self, load_model_path):
-        self.actor = build_model_from_json_file(os.path.join(load_model_path, 'actor_model.json'))
-        self.critic = build_model_from_json_file(os.path.join(load_model_path, 'critic_model.json'))
-        self.actor_target = build_model_from_json_file(os.path.join(load_model_path, 'actor_target_model.json'))
-        self.critic_target = build_model_from_json_file(os.path.join(load_model_path, 'critic_target_model.json'))
-        self._load_weights(load_model_path)
+        self.actor = build_saved_model(os.path.join(load_model_path, 'actor'))
+        self.critic = build_saved_model(os.path.join(load_model_path, 'critic'))
+        self.actor_target = build_saved_model(os.path.join(load_model_path, 'actor_target'))
+        self.critic_target = build_saved_model(os.path.join(load_model_path, 'critic_target'))
         
     def forward(self, states):
         actions = self.actor.forward(states).numpy()
@@ -87,17 +86,7 @@ class DDPGModel():
             critic_target_weight = critic_target_weight*(1 - self.tau) + critic_weight*self.tau
 
     def save_models(self, path):
-        self.actor.save_weights(os.path.join(path, 'actor_weights'))
-        self.critic.save_weights(os.path.join(path, 'critic_weights'))
-        self.actor_target.save_weights(os.path.join(path, 'actor_target_weights'))
-        self.critic_target.save_weights(os.path.join(path, 'critic_target_weights'))
-        self.actor.save_architecture(os.path.join(path, 'actor_model.json'))
-        self.critic.save_architecture(os.path.join(path, 'critic_model.json'))
-        self.actor_target.save_architecture(os.path.join(path, 'actor_target_model.json'))
-        self.critic_target.save_architecture(os.path.join(path, 'critic_target_model.json'))
-
-    def _load_weights(self, path):
-        self.actor.load_weights(os.path.join(path, 'actor_weights'))
-        self.critic.load_weights(os.path.join(path, 'critic_weights'))
-        self.actor_target.load_weights(os.path.join(path, 'actor_target_weights'))
-        self.critic_target.load_weights(os.path.join(path, 'critic_target_weights'))
+        self.actor.save_model(os.path.join(path, 'actor'))
+        self.critic.save_model(os.path.join(path, 'critic'))
+        self.actor_target.save_model(os.path.join(path, 'actor_target'))
+        self.critic_target.save_model(os.path.join(path, 'critic_target'))

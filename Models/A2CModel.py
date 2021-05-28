@@ -55,8 +55,8 @@ class A2CModel(ABC):
         return loss_critic
 
     def save_models(self, path):
-        self.actor.save_models(os.path.join(path, 'actor'))
-        self.critic.save_models(os.path.join(path, 'critic'))
+        self.actor.save_model(os.path.join(path, 'actor'))
+        self.critic.save_model(os.path.join(path, 'critic'))
 
 
 class A2CModelDiscrete(A2CModel):

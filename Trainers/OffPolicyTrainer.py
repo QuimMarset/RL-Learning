@@ -37,16 +37,17 @@ class OffPolicyTrainer():
                 self.summary_writer.write_iteration_information(iteration, losses)
 
             if iteration%20 == 0 or iteration == iterations - 1:
-                self.save_weights(iteration)
+                self.save_model(iteration)
             
             print("======== Iteration " + str(iteration) + " Finished ============")
         
         self.environment.end()
+        self.save_last_model()
 
-    def save_last_weights(self):
+    def save_last_model(self):
         path = os.path.join(self.save_models_path, "End")
-        self.agent.save_weights(path)
+        self.agent.save_model(path)
 
-    def save_weights(self, iteration):
+    def save_model(self, iteration):
         path = os.path.join(self.save_models_path, str(iteration))
-        self.agent.save_weights(path)
+        self.agent.save_model(path)

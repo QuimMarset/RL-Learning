@@ -3,19 +3,19 @@ from tensorflow import keras
 import os
 from abc import ABC, abstractmethod
 from Models.BasicModels import (build_icm_state_encoder, build_icm_inverse_model, build_icm_discrete_forward_model,
-    build_icm_continuous_forward_model, build_model_from_json_file)
+    build_icm_continuous_forward_model, build_saved_model)
 
 
 class ICMModel(ABC):
 
     def __init__(self, load_models_path, state_space, action_space, learning_rate, gradient_clipping, beta, 
         intrinsic_reward_scaling):
-        self._load_models(load_models_path) if load_models_path else self._create_models(state_space, action_space)
-        self.optimizer = keras.optimizers.Adam(learning_rate)
         self.intrinsic_reward_scaling = intrinsic_reward_scaling
         self.beta = beta
         self.gradient_clipping = gradient_clipping
         self.encoded_state_size = 256
+        self._load_models(load_models_path) if load_models_path else self._create_models(state_space, action_space)
+        self.optimizer = keras.optimizers.Adam(learning_rate)
         
     def _create_models(self, state_space, action_space):
         self.state_encoder = build_icm_state_encoder(state_space, self.encoded_state_size)
@@ -23,10 +23,9 @@ class ICMModel(ABC):
         self.forward_model = self._create_forward_model(action_space)
 
     def _load_models(self, load_models_path):
-        self.state_encoder = build_model_from_json_file(os.path.join(load_models_path, 'state_encoder.json'))
-        self.inverse_model = build_model_from_json_file(os.path.join(load_models_path, 'forward_model.json'))
-        self.forward_model = build_model_from_json_file(os.path.join(load_models_path, 'inverse_model.json'))
-        self._load_weights(load_models_path) 
+        self.state_encoder = build_saved_model(os.path.join(load_models_path, 'state_encoder'))
+        self.inverse_model = build_saved_model(os.path.join(load_models_path, 'forward_model'))
+        self.forward_model = build_saved_model(os.path.join(load_models_path, 'inverse_model'))
 
     @abstractmethod
     def _create_forward_model(self, action_space):
@@ -58,23 +57,12 @@ class ICMModel(ABC):
         return forward_loss, inverse_loss
 
     def save_models(self, path):
-        self.state_encoder.save_weights(os.path.join(path, 'state_encoder'))
-        self.inverse_model.save_weights(os.path.join(path, 'inverse_model'))
-        self.forward_model.save_weights(os.path.join(path, 'forward_model'))
-        self.state_encoder.save_architecture(os.path.join(path, 'state_encoder.json'))
-        self.inverse_model.save_architecture(os.path.join(path, 'forward_model.json'))
-        self.forward_model.save_architecture(os.path.join(path, 'inverse_model.json'))
-
-    def _load_weights(self, path):
-        self.state_encoder.load_weights(os.path.join(path, 'state_encoder'))
-        self.inverse_model.load_weights(os.path.join(path, 'inverse_model'))
-        self.forward_model.load_weights(os.path.join(path, 'forward_model'))
+        self.state_encoder.save_model(os.path.join(path, 'state_encoder'))
+        self.inverse_model.save_model(os.path.join(path, 'inverse_model'))
+        self.forward_model.save_model(os.path.join(path, 'forward_model'))
 
 
 class ICMModelDiscrete(ICMModel):
-
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, beta, intrinsic_reward_scaling):
-        super().__init__(state_space, action_space, learning_rate, gradient_clipping, beta, intrinsic_reward_scaling)
 
     def _create_forward_model(self, action_space):
         return build_icm_discrete_forward_model(action_space, self.encoded_state_size)
@@ -97,9 +85,6 @@ class ICMModelDiscrete(ICMModel):
 
 
 class ICMModelContinuous(ICMModel):
-
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, beta, intrinsic_reward_scaling):
-        super().__init__(state_space, action_space, learning_rate, gradient_clipping, beta, intrinsic_reward_scaling)
 
     def _create_forward_model(self, action_space):
         return build_icm_continuous_forward_model(action_space, self.encoded_state_size)

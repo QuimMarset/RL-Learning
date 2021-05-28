@@ -39,5 +39,5 @@ class SACAgent(BasicOffPolicyAgent):
 
         return losses
 
-    def save_models(self, path):
+    def save_model(self, path):
         self.model.save_models(path)

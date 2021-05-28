@@ -31,8 +31,8 @@ class SACModel(ABC):
         self.actor = build_saved_model(os.path.join(load_models_path, 'actor'))
         self.critic_1 = build_saved_model(os.path.join(load_models_path, 'critic_1'))
         self.critic_2 = build_saved_model(os.path.join(load_models_path, 'critic_2'))
-        self.critic_target_1 = build_saved_model(os.path.join(load_models_path, 'critic_target_1'))
-        self.critic_target_2 = build_saved_model(os.path.join(load_models_path, 'critic_target_2'))
+        self.critic_target_1 = build_saved_model(os.path.join(load_models_path, 'critic_1_target'))
+        self.critic_target_2 = build_saved_model(os.path.join(load_models_path, 'critic_2_target'))
 
     @abstractmethod
     def _create_actor(self, state_space, action_space):

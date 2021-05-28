@@ -16,8 +16,8 @@ class Model:
         return self.model.trainable_variables
 
     def save_model(self, save_path):
-        self._save_architecture(os.path.join(save_path, 'model.json'))
         self.model.save_weights(os.path.join(save_path, 'model'))
+        self._save_architecture(os.path.join(save_path, 'model.json'))
 
     def get_weights(self):
         return self.model.get_weights()

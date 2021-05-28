@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import os
-from Models.BasicModels import build_discrete_state_action_critic, build_model_from_json_file
+from Models.BasicModels import build_discrete_state_action_critic, build_saved_model
 
 class DQNModel:
 
@@ -23,9 +23,8 @@ class DQNModel:
         self.target_q_values_model = self.q_values_model.clone()
 
     def _load_models(self, load_model_path):
-        self.q_values_model = build_model_from_json_file(os.path.join(load_model_path, 'q_values_model.json'))
-        self.target_q_values_model = build_model_from_json_file(os.path.join(load_model_path, 'target_q_values_model.json'))
-        self._load_weights(load_model_path)
+        self.q_values_model = build_saved_model(os.path.join(load_model_path, 'q_values_model'))
+        self.target_q_values_model = build_saved_model(os.path.join(load_model_path, 'target_q_values_model'))
 
     def _select_random_actions(self, q_values):
         num_actions = q_values.shape[1]
@@ -95,11 +94,5 @@ class DQNModel:
             target_model_weight = target_model_weight*(1 - self.tau) + model_weight*self.tau
 
     def save_models(self, path):
-        self.q_values_model.save_weights(os.path.join(path, 'q_values_model_weights'))
-        self.target_q_values_model.save_weights(os.path.join(path,'target_q_values_model_weights'))
-        self.q_values_model.save_architecture(os.path.join(path, 'q_values_model.json'))
-        self.target_q_values_model.save_architecture(os.path.join(path, 'target_q_values_model.json'))
-
-    def _load_weights(self, path):
-        self.q_values_model.load_weights(os.path.join(path, 'q_values_model_weights'))
-        self.target_q_values_model.load_weights(os.path.join(path,'target_q_values_model_weights'))
+        self.q_values_model.save_model(os.path.join(path, 'q_values_model'))
+        self.target_q_values_model.save_model(os.path.join(path,'target_q_values_model'))
