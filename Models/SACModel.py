@@ -84,8 +84,8 @@ class SACModel(ABC):
     def update_critics(self, states, actions, rewards, terminals, next_states):
         tape = tf.GradientTape(persistent = True)
         y = self._compute_critic_target_update(tape, rewards, terminals, next_states)
-        loss_1 = self._update_critic_1(self.critic_1, self.critic_1_optimizer, tape, states, actions, y)
-        loss_2 = self._update_critic_2(self.critic_2, self.critic_2_optimizer, tape, states, actions, y)
+        loss_1 = self._update_critic(self.critic_1, self.critic_1_optimizer, tape, states, actions, y)
+        loss_2 = self._update_critic(self.critic_2, self.critic_2_optimizer, tape, states, actions, y)
         return loss_1, loss_2
 
     def _update_target_critic(self, model, target_model):
@@ -155,6 +155,11 @@ class SACModelDiscrete(SACModel):
 
 class SACModelContinuous(SACModel):
 
+    def __init__(self, load_models_path, state_space, action_space, learning_rate, gamma, tau, alpha, gradient_clipping):
+        super().__init__(load_models_path, state_space, action_space, learning_rate, gamma, tau, alpha, gradient_clipping)
+        self.min_action = action_space.get_min_action()
+        self.max_action = action_space.get_max_action()
+
     def _create_actor(self, state_space, action_space):
         return build_continuous_stochastic_actor(state_space, action_space)
 
@@ -169,11 +174,13 @@ class SACModelContinuous(SACModel):
     def forward(self, states):
         mus, log_sigmas = self._compute_mu_and_log_sigma(states)
         actions, _ = sample_from_bounded_gaussian(mus, log_sigmas)
+        actions = self.min_action + (actions + 1.0)*(self.max_action - self.min_action)/2.0
         return actions.numpy()
 
-    def test_forward(self, states):
-        mus, _ = self.actor.forward(states)
-        return mus.numpy()
+    def test_forward(self, state):
+        mu, _ = self.actor.forward(state)
+        mu = tf.clip_by_value(mu, self.min_action, self.max_action)
+        return mu.numpy()
 
     def _compute_actor_loss(self, tape, states):
         with tape:

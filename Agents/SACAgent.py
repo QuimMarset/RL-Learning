@@ -11,7 +11,6 @@ class SACAgent(BasicOffPolicyAgent):
         self.model = model_class(load_models_path, state_space, action_space, learning_rate, gamma, tau, alpha, 
             gradient_clipping)
         self.buffer = ReplayBuffer(buffer_size)
-
         self.last_actions = None
 
     def step(self, states):

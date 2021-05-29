@@ -93,18 +93,24 @@ class A2CModelDiscrete(A2CModel):
 
 class A2CModelContinuous(A2CModel):
 
+    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping):
+        super().__init__(load_model_path, state_space, action_space, learning_rate, gradient_clipping)
+        self.min_action = action_space.get_min_action()
+        self.max_action = action_space.get_max_action()
+
     def _create_actor(self, state_space, action_space):
         return build_continuous_stochastic_actor(state_space, action_space)
 
     def forward(self, states):
         values = tf.squeeze(self.critic.forward(states), axis = -1)
         mus, log_sigmas = self.actor.forward(states)
-        actions = sample_from_gaussians(mus, log_sigmas)
+        actions = tf.clip_by_value(sample_from_gaussians(mus, log_sigmas), self.min_action, self.max_action) 
         return values.numpy(), actions.numpy()
 
     def test_forward(self, state):
-        mean, _ = self.actor.forward(state)
-        return mean.numpy()
+        mu, _ = self.actor.forward(state)
+        mu = tf.clip_by_value(mu, self.min_action, self.max_action)
+        return mu.numpy()
 
     def _compute_actor_loss(self, tape, states, actions, advantages):
         with tape:

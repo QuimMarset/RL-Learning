@@ -1,4 +1,3 @@
-import numpy as np
 from Models.DDPGModel import DDPGModel
 from Buffers.ReplayBuffer import ReplayBuffer
 from Agents.BasicAgent import BasicOffPolicyAgent
@@ -8,22 +7,17 @@ class DDPGAgent(BasicOffPolicyAgent):
 
     def __init__(self, state_space, action_space, load_models_path, learning_rate, gradient_clipping, gamma, tau, 
         buffer_size, noise_std):
-        self.model = DDPGModel(load_models_path, state_space, action_space, learning_rate, gradient_clipping, gamma, tau)
+        self.model = DDPGModel(load_models_path, state_space, action_space, learning_rate, gradient_clipping, gamma, 
+            tau, noise_std)
         self.buffer = ReplayBuffer(buffer_size)
-        
-        self.noise_std = noise_std
-        self.max_action = action_space.get_max_action()
-        self.min_action = action_space.get_min_action()
         self.last_actions = None
 
     def step(self, states):
         self.last_actions = self.model.forward(states)
-        exploration_noise = self.noise_std*np.random.standard_normal(self.last_actions.shape)
-        self.last_actions = np.clip(self.last_actions + exploration_noise, self.min_action, self.max_action)
         return self.last_actions
 
     def test_step(self, state):
-        return self.step(state)
+        return self.model.test_forward(state)
 
     def store_transitions(self, states, rewards, terminals, next_states):
         self.buffer.store_transitions(states, self.last_actions, rewards, terminals, next_states)

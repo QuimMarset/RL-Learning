@@ -6,13 +6,16 @@ from Models.BasicModels import (build_continuous_deterministic_actor, build_cont
 
 class DDPGModel():
 
-    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping, gamma, tau):
+    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping, gamma, tau, noise_std):
         self._load_models(load_model_path) if load_model_path else self._create_models(state_space, action_space)
         self.actor_optimizer = keras.optimizers.Adam(learning_rate)
         self.critic_optimizer = keras.optimizers.Adam(learning_rate)
         self.gamma = gamma
         self.tau = tau
         self.gradient_clipping = gradient_clipping
+        self.noise_std = noise_std
+        self.min_action = action_space.get_min_action()
+        self.max_action = action_space.get_max_action()
 
     def _create_models(self, state_space, action_space):
         self.actor = build_continuous_deterministic_actor(state_space, action_space)
@@ -27,8 +30,14 @@ class DDPGModel():
         self.critic_target = build_saved_model(os.path.join(load_model_path, 'critic_target'))
         
     def forward(self, states):
-        actions = self.actor.forward(states).numpy()
-        return actions
+        actions = self.actor.forward(states)
+        exploration_noise = self.noise_std*tf.random.normal(actions.shape)
+        actions = tf.clip_by_value(actions + exploration_noise, self.min_action, self.max_action)
+        return actions.numpy()
+
+    def test_forward(self, state):
+        action = tf.clip_by_value(self.actor.forward(state), self.min_action, self.max_action)
+        return action.numpy()
 
     def update_actor(self, states):
         with tf.GradientTape() as tape:

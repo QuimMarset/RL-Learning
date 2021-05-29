@@ -101,19 +101,25 @@ class PPOModelDiscrete(PPOModel):
 
 class PPOModelContinuous(PPOModel):
 
+    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping, epsilon):
+        super().__init__(load_model_path, state_space, action_space, learning_rate, gradient_clipping, epsilon)
+        self.min_action = action_space.get_min_action()
+        self.max_action = action_space.get_max_action()
+
     def _create_actor(self, state_space, action_space):
         return build_continuous_stochastic_actor(state_space, action_space)
 
     def forward(self, states):
         values = tf.squeeze(self.critic.forward(states), axis = -1)
         mus, log_sigmas = self.actor.forward(states)
-        actions = sample_from_gaussians(mus, log_sigmas)
+        actions = tf.clip_by_value(sample_from_gaussians(mus, log_sigmas), self.min_action, self.max_action)
         actions_prob = compute_pdf_of_gaussian_samples(mus, log_sigmas, actions)
         actions_log_prob = compute_log_of_tensor(actions_prob)
         return values.numpy(), actions.numpy(), actions_log_prob.numpy()
 
     def test_forward(self, state):
         mu, _ = self.actor.forward(state)
+        mu = tf.clip_by_value(mu, self.min_action, self.max_action)
         return mu.numpy()
     
     def _compute_actor_loss(self, tape, states, actions, advantages, actions_old_log_prob):

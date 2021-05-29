@@ -66,7 +66,7 @@ class ICMModelDiscrete(ICMModel):
     def _create_forward_model(self, action_space):
         return build_icm_discrete_forward_model(action_space, self.encoded_state_size)
             
-    def _compute_gradients(self, tape, states, actions, next_states):
+    def _compute_loss(self, tape, states, actions, next_states):
         with tape:
             encoded_states = self.state_encoder.forward(states)
             encoded_next_states = self.state_encoder.forward(next_states)
