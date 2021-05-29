@@ -1,13 +1,10 @@
-from Environments.BasicEnvironment import BasicEnvironment
+from Environments.wrappers.BasicWrapper import BasicWrapper
 
-class SkipFramesWrapper(BasicEnvironment):
+class SkipFramesWrapper(BasicWrapper):
 
     def __init__(self, environment, frames_skipped):
-        self.environment = environment
+        super().__init__(environment)
         self.frames_skipped = frames_skipped
-
-    def start(self):
-        return self.environment.start()
 
     def step(self, action):
         total_reward = 0
@@ -17,12 +14,3 @@ class SkipFramesWrapper(BasicEnvironment):
             if terminal:
                 break
         return total_reward, next_state, terminal
-
-    def end(self):
-        self.environment.end()
-
-    def get_state_space(self):
-        return self.environment.get_state_space()
-
-    def get_action_space(self):
-        return self.environment.get_action_space()

@@ -1,11 +1,8 @@
 import numpy as np
-from Environments.BasicEnvironment import BasicEnvironment
+from Environments.wrappers.BasicWrapper import BasicWrapper
 
 
-class SingleEnvironmentWrapper(BasicEnvironment):
-
-    def __init__(self, environment):
-        self.environment = environment
+class SingleEnvironmentWrapper(BasicWrapper):
     
     def start(self):
         first_state = self.environment.start()
@@ -22,12 +19,3 @@ class SingleEnvironmentWrapper(BasicEnvironment):
         reward = [reward]
         terminal = [terminal]
         return reward, next_state, terminal
-
-    def end(self):
-        self.environment.end()
-
-    def get_state_space(self):
-        return self.environment.get_state_space()
-
-    def get_action_space(self):
-        return self.environment.get_action_space()

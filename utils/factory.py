@@ -1,5 +1,5 @@
 from utils.builder import *
-from Environments.wrappers.SingleEnvironmentWrapper import SingleEnvironmentWrapper
+
 
 class Factory:
 
@@ -29,8 +29,7 @@ class EnvironmentFactory(Factory):
 
     def create(self, key, **kwargs):
         environment = super().create(key, **kwargs)
-        environment = SingleEnvironmentWrapper(environment)
-        return environment
+        return create_single_environment_wrapper(environment)
 
 
 class MultiEnvironmentWrapperFactory:

@@ -1,5 +1,5 @@
 from multiprocessing import Process, Pipe
-from Environments.BasicEnvironment import BasicEnvironment
+from Environments.wrappers.BasicWrapper import BasicWrapper
 from Environments.Space import MultiEnvironmentStateSpaceWrapper
 import numpy as np
 
@@ -43,7 +43,7 @@ def environment_worker_function(env_function, pipe_end, **env_params):
             raise ValueError(msg)
 
 
-class MultiEnvironmentWrapper(BasicEnvironment):
+class MultiEnvironmentWrapper(BasicWrapper):
 
     def __init__(self, env_function, num_envs, **env_params):
         self.num_envs = num_envs
@@ -111,3 +111,9 @@ class MultiEnvironmentWrapper(BasicEnvironment):
         self.pipes_main[index].send(("reset", None))
         (_, state) = self.pipes_main[index].recv()
         return state
+
+    def get_state_space(self):
+        return self.state_space
+
+    def get_action_space(self):
+        return self.action_space

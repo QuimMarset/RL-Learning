@@ -7,8 +7,7 @@ from Environments.Space import DiscreteActionSpace, ImageStateSpace
 
 class VizDoomEnvironment(BasicEnvironment):
 
-    def __init__(self, config_files_path, env_name, reward_scaling, render):
-        self.reward_scaling = reward_scaling
+    def __init__(self, config_files_path, env_name, render):
         self.previous_state = None
         self._create_game(config_files_path, env_name, render)
         self._configure_state_space()
@@ -40,7 +39,7 @@ class VizDoomEnvironment(BasicEnvironment):
         return first_state
 
     def step(self, action):
-        reward = self.game.make_action(self.actions[action])*self.reward_scaling
+        reward = self.game.make_action(self.actions[action])
         is_terminal = self.game.is_episode_finished()
         
         if is_terminal:

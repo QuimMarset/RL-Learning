@@ -1,11 +1,14 @@
-from os import environ
 from Environments import VizDoomEnvironment, GymImageStateEnvironment, GymVectorStateEnvironment
-from Environments.wrappers import FrameResizeWrapper, SkipFramesWrapper, StackFramesWrapper, MultiEnvironmentWrapper
+from Environments.wrappers import (FrameNormalizatonWrapper, FrameRGB2GrayWrapper, FrameResizeWrapper, 
+    SkipFramesWrapper, StackFramesWrapper, MultiEnvironmentWrapper, SingleEnvironmentWrapper)
 from Agents import A2CAgent, DDPGAgent, PPOAgent, DQNAgent, SACAgent, PPOCuriosityAgent
 from Trainers import OffPolicyTrainer, OnPolicyTrainer
 
 
 def wrap_frame_based_environment(environment, frame_resize, frames_stacked, frames_skipped):
+    environment = FrameNormalizatonWrapper.FrameNormalizationWrapper(environment)
+    if environment.get_state_space().get_state_shape()[-1] == 3:
+        environment = FrameRGB2GrayWrapper.FrameRGB2GrayWrapper(environment)
     if frame_resize is not ():
         environment = FrameResizeWrapper.FrameResizeWrapper(environment, frame_resize)
     if frames_skipped > 1:
@@ -37,6 +40,9 @@ def create_vector_state_cont_act_gym_environment(env_name, reward_scale, render,
 
 def create_vector_state_disc_act_gym_environment(env_name, reward_scale, render, **ignored):
     return GymVectorStateEnvironment.GymVectorDiscreteActionEnvironment(env_name, reward_scale, render)
+
+def create_single_environment_wrapper(environment):
+    return SingleEnvironmentWrapper.SingleEnvironmentWrapper(environment)
 
 def create_multi_environment_wrapper(env_function, num_envs, **env_params):
     return MultiEnvironmentWrapper.MultiEnvironmentWrapper(env_function, num_envs, **env_params)
