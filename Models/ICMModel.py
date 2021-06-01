@@ -2,8 +2,9 @@ import tensorflow as tf
 from tensorflow import keras
 import os
 from abc import ABC, abstractmethod
-from Models.BasicModels import (build_icm_state_encoder, build_icm_inverse_model, build_icm_discrete_forward_model,
-    build_icm_continuous_forward_model, build_saved_model)
+from Models.BasicModels import (build_icm_state_encoder, build_icm_discrete_inverse_model, 
+    build_icm_continuous_inverse_model, build_icm_discrete_forward_model, build_icm_continuous_forward_model, 
+    build_saved_model)
 
 
 class ICMModel(ABC):
@@ -13,14 +14,13 @@ class ICMModel(ABC):
         self.intrinsic_reward_scaling = intrinsic_reward_scaling
         self.beta = beta
         self.gradient_clipping = gradient_clipping
-        self.encoded_state_size = 256
         self._load_models(load_models_path) if load_models_path else self._create_models(state_space, action_space)
         self.optimizer = keras.optimizers.Adam(learning_rate)
         
     def _create_models(self, state_space, action_space):
-        self.state_encoder = build_icm_state_encoder(state_space, self.encoded_state_size)
-        self.inverse_model = build_icm_inverse_model(action_space, self.encoded_state_size)
-        self.forward_model = self._create_forward_model(action_space)
+        self.state_encoder, encoded_state_size = build_icm_state_encoder(state_space)
+        self.inverse_model = self._create_inverse_model(action_space, encoded_state_size)
+        self.forward_model = self._create_forward_model(action_space, encoded_state_size)
 
     def _load_models(self, load_models_path):
         self.state_encoder = build_saved_model(os.path.join(load_models_path, 'state_encoder'))
@@ -28,7 +28,11 @@ class ICMModel(ABC):
         self.forward_model = build_saved_model(os.path.join(load_models_path, 'inverse_model'))
 
     @abstractmethod
-    def _create_forward_model(self, action_space):
+    def _create_inverse_model(self, action_space, encoded_state_size):
+        pass
+
+    @abstractmethod
+    def _create_forward_model(self, action_space, encoded_state_size):
         pass
 
     def forward(self, states, actions, next_states):
@@ -63,8 +67,11 @@ class ICMModel(ABC):
 
 class ICMModelDiscrete(ICMModel):
 
-    def _create_forward_model(self, action_space):
-        return build_icm_discrete_forward_model(action_space, self.encoded_state_size)
+    def _create_inverse_model(self, action_space, encoded_state_size):
+        return build_icm_discrete_inverse_model(action_space, encoded_state_size)
+
+    def _create_forward_model(self, action_space, encoded_state_size):
+        return build_icm_discrete_forward_model(action_space, encoded_state_size)
             
     def _compute_loss(self, tape, states, actions, next_states):
         with tape:
@@ -81,8 +88,11 @@ class ICMModelDiscrete(ICMModel):
 
 class ICMModelContinuous(ICMModel):
 
-    def _create_forward_model(self, action_space):
-        return build_icm_continuous_forward_model(action_space, self.encoded_state_size)
+    def _create_inverse_model(self, action_space, encoded_state_size):
+        return build_icm_continuous_inverse_model(action_space, encoded_state_size)
+
+    def _create_forward_model(self, action_space, encoded_state_size):
+        return build_icm_continuous_forward_model(action_space, encoded_state_size)
             
     def _compute_loss(self, tape, states, actions, next_states):
         with tape:

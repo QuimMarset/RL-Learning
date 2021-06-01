@@ -29,7 +29,7 @@ class EnvironmentFactory(Factory):
 
     def create(self, key, **kwargs):
         environment = super().create(key, **kwargs)
-        return create_single_environment_wrapper(environment)
+        return create_single_environment(environment)
 
 
 class MultiEnvironmentWrapperFactory:
@@ -39,7 +39,7 @@ class MultiEnvironmentWrapperFactory:
 
     def create(self, key, **kwargs):
         environment_builder = self.environment_factory.get_builder(key)
-        return create_multi_environment_wrapper(environment_builder, **kwargs)
+        return create_multi_environment(environment_builder, **kwargs)
 
 
 class TrainerFactory(Factory):

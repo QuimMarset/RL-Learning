@@ -85,25 +85,33 @@ def build_continuous_state_action_critic(state_space, action_space):
     model = keras.Model(model_inputs, model_outputs)
     return Model(model)
 
-def build_icm_state_encoder(state_space, encoded_state_size):
+def build_icm_state_encoder(state_space):
     model_inputs, state_encoder_output = create_state_encoder(state_space)
-    model_outputs = create_icm_state_encoder(state_encoder_output, encoded_state_size)
+    model_outputs = create_icm_state_encoder(state_encoder_output)
+    encoded_state_size = model_outputs.shape[-1]
+    model = keras.Model(model_inputs, model_outputs)
+    return Model(model), encoded_state_size
+
+def build_icm_discrete_inverse_model(action_space, encoded_state_size):
+    model_inputs, encoded_states = create_icm_inverse_model_inputs(encoded_state_size)
+    model_outputs = create_icm_discrete_inverse_model_action_output(encoded_states, action_space)
     model = keras.Model(model_inputs, model_outputs)
     return Model(model)
 
-def build_icm_inverse_model(action_space, encoded_state_size):
-    model_inputs, model_outputs = create_icm_inverse_model(action_space, encoded_state_size)
+def build_icm_continuous_inverse_model(action_space, encoded_state_size):
+    model_inputs, encoded_states = create_icm_inverse_model_inputs(encoded_state_size)
+    model_outputs = create_icm_continuous_inverse_model_action_output(encoded_states, action_space)
     model = keras.Model(model_inputs, model_outputs)
     return Model(model)
 
 def build_icm_discrete_forward_model(action_space, encoded_state_size):
     model_inputs, encoded_state_and_action = create_icm_discrete_forward_model_inputs(action_space, encoded_state_size)
-    model_outputs = create_icm_forward_model_action_output(encoded_state_and_action, encoded_state_size)
+    model_outputs = create_icm_forward_model_encoded_next_state_output(encoded_state_and_action, encoded_state_size)
     model = keras.Model(model_inputs, model_outputs)
     return Model(model)
 
 def build_icm_continuous_forward_model(action_space, encoded_state_size):
     model_inputs, encoded_state_and_action = create_icm_continuous_forward_model_inputs(action_space, encoded_state_size)
-    model_outputs = create_icm_forward_model_action_output(encoded_state_and_action, encoded_state_size)
+    model_outputs = create_icm_forward_model_encoded_next_state_output(encoded_state_and_action, encoded_state_size)
     model = keras.Model(model_inputs, model_outputs)
     return Model(model)

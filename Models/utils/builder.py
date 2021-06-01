@@ -85,17 +85,24 @@ def create_state_action_value_output(state_encoder_output):
     return state_action_value
 
 
-def create_icm_state_encoder(state_encoder_output, encoded_state_size):
-    encoded_state = keras.layers.Dense(encoded_state_size, activation = 'linear')(state_encoder_output)
+def create_icm_state_encoder(state_encoder_output):
+    encoded_state = keras.layers.Dense(256, activation = 'linear')(state_encoder_output)
     return encoded_state
 
-def create_icm_inverse_model(action_space, encoded_state_size):
+def create_icm_inverse_model_inputs(encoded_state_size):
     encoded_state_input = keras.Input((encoded_state_size,))
     encoded_next_state_input = keras.Input((encoded_state_size,))
     concat = keras.layers.concatenate([encoded_state_input, encoded_next_state_input], axis = -1)
     dense = keras.layers.Dense(256, activation = 'relu')(concat)
-    action_output = keras.layers.Dense(action_space.get_action_space_shape()[0], activation = 'softmax')(dense)
-    return [encoded_state_input, encoded_next_state_input], action_output
+    return [encoded_state_input, encoded_next_state_input], dense
+
+def create_icm_discrete_inverse_model_action_output(encoded_states, action_space):
+    action_output = keras.layers.Dense(action_space.get_action_space_shape()[0], activation = 'softmax')(encoded_states)
+    return action_output
+
+def create_icm_continuous_inverse_model_action_output(encoded_states, action_space):
+    action_output = keras.layers.Dense(action_space.get_action_space_shape()[0])(encoded_states)
+    return action_output
 
 def create_icm_discrete_forward_model_inputs(action_space, encoded_state_size):
     encoded_state_input = keras.Input((encoded_state_size,))
@@ -110,7 +117,7 @@ def create_icm_continuous_forward_model_inputs(action_space, encoded_state_size)
     concat = keras.layers.concatenate([encoded_state_input, action_input], axis = 1)
     return [encoded_state_input, action_input], concat
 
-def create_icm_forward_model_action_output(encoded_state_and_action, encoded_state_size):
+def create_icm_forward_model_encoded_next_state_output(encoded_state_and_action, encoded_state_size):
     dense = keras.layers.Dense(256, activation = 'relu')(encoded_state_and_action)
     next_state_encoding = keras.layers.Dense(encoded_state_size)(dense)
     return next_state_encoding

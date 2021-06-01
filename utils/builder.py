@@ -1,5 +1,5 @@
 from Environments import VizDoomEnvironment, GymImageStateEnvironment, GymVectorStateEnvironment
-from Environments.wrappers import (FrameNormalizatonWrapper, FrameRGB2GrayWrapper, FrameResizeWrapper, 
+from Environments.wrappers import (FrameNormalizatonWrapper, FrameRGB2GrayWrapper, FrameResizeWrapper, ScaleRewardWrapper,
     SkipFramesWrapper, StackFramesWrapper, MultiEnvironmentWrapper, SingleEnvironmentWrapper)
 from Agents import A2CAgent, DDPGAgent, PPOAgent, DQNAgent, SACAgent, PPOCuriosityAgent
 from Trainers import OffPolicyTrainer, OnPolicyTrainer
@@ -9,7 +9,7 @@ def wrap_frame_based_environment(environment, frame_resize, frames_stacked, fram
     environment = FrameNormalizatonWrapper.FrameNormalizationWrapper(environment)
     if environment.get_state_space().get_state_shape()[-1] == 3:
         environment = FrameRGB2GrayWrapper.FrameRGB2GrayWrapper(environment)
-    if frame_resize is not ():
+    if frame_resize:
         environment = FrameResizeWrapper.FrameResizeWrapper(environment, frame_resize)
     if frames_skipped > 1:
         environment = SkipFramesWrapper.SkipFramesWrapper(environment, frames_skipped)
@@ -17,34 +17,42 @@ def wrap_frame_based_environment(environment, frame_resize, frames_stacked, fram
         environment = StackFramesWrapper.StackFramesWrapper(environment, frames_stacked)
     return environment
 
+def wrap_environment(environment, reward_scale):
+    if reward_scale != 1:
+        environment = ScaleRewardWrapper.ScaleRewardWrapper(environment, reward_scale)
+    return environment
+
+
 def create_vizdoom_environment(doom_cfgs_path, env_name, frame_resize, frames_stacked, frames_skipped, reward_scale, 
     render, **ignored):
-    environment = VizDoomEnvironment.VizDoomEnvironment(doom_cfgs_path, env_name, reward_scale, render)
+    environment = VizDoomEnvironment.VizDoomEnvironment(doom_cfgs_path, env_name, render)
     environment = wrap_frame_based_environment(environment, frame_resize, frames_stacked, frames_skipped)
-    return environment
+    return wrap_environment(environment, reward_scale)
 
 def create_image_state_cont_act_gym_environment(env_name, frame_resize, frames_stacked, frames_skipped, reward_scale, 
     render, **ignored):
-    environment = GymImageStateEnvironment.GymImageContActionEnvironment(env_name, reward_scale, render)
+    environment = GymImageStateEnvironment.GymImageContActionEnvironment(env_name, render)
     environment = wrap_frame_based_environment(environment, frame_resize, frames_stacked, frames_skipped)
-    return environment
+    return wrap_environment(environment, reward_scale)
 
 def create_image_state_disc_act_gym_environment(env_name, frame_resize, frames_stacked, frames_skipped, reward_scale, 
     render, **ignored):
-    environment = GymImageStateEnvironment.GymImageDiscreteActionEnvironment(env_name, reward_scale, render)
+    environment = GymImageStateEnvironment.GymImageDiscreteActionEnvironment(env_name, render)
     environment = wrap_frame_based_environment(environment, frame_resize, frames_stacked, frames_skipped)
-    return environment
+    return wrap_environment(environment, reward_scale)
 
 def create_vector_state_cont_act_gym_environment(env_name, reward_scale, render, **ignored):
-    return GymVectorStateEnvironment.GymVectorContActionEnvironment(env_name, reward_scale, render)
+    environment = GymVectorStateEnvironment.GymVectorContActionEnvironment(env_name, render)
+    return wrap_environment(environment, reward_scale)
 
 def create_vector_state_disc_act_gym_environment(env_name, reward_scale, render, **ignored):
-    return GymVectorStateEnvironment.GymVectorDiscreteActionEnvironment(env_name, reward_scale, render)
+    environment = GymVectorStateEnvironment.GymVectorDiscreteActionEnvironment(env_name, render)
+    return wrap_environment(environment, reward_scale)
 
-def create_single_environment_wrapper(environment):
+def create_single_environment(environment):
     return SingleEnvironmentWrapper.SingleEnvironmentWrapper(environment)
 
-def create_multi_environment_wrapper(env_function, num_envs, **env_params):
+def create_multi_environment(env_function, num_envs, **env_params):
     return MultiEnvironmentWrapper.MultiEnvironmentWrapper(env_function, num_envs, **env_params)
 
 
