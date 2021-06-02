@@ -1,4 +1,6 @@
-from utils.builder import *
+from utils.environment_builder import *
+from utils.agent_builder import *
+from utils.trainer_builder import *
 
 
 class Factory:
@@ -29,17 +31,17 @@ class EnvironmentFactory(Factory):
 
     def create(self, key, **kwargs):
         environment = super().create(key, **kwargs)
-        return create_single_environment(environment)
+        return wrap_environment_to_output_vectors(environment)
 
 
-class MultiEnvironmentWrapperFactory:
+class MultiEnvironmentManagerFactory:
 
     def __init__(self, environment_factory):
         self.environment_factory = environment_factory
 
     def create(self, key, **kwargs):
         environment_builder = self.environment_factory.get_builder(key)
-        return create_multi_environment(environment_builder, **kwargs)
+        return create_multi_environment_manager(environment_builder, **kwargs)
 
 
 class TrainerFactory(Factory):
@@ -61,8 +63,7 @@ environment_factory.register_builder("d2_navigation", create_vizdoom_environment
 environment_factory.register_builder("LunarLander-v2", create_vector_state_disc_act_gym_environment)
 environment_factory.register_builder("LunarLanderContinuous-v2", create_vector_state_cont_act_gym_environment)
 
-
-multi_environment_wrapper_factory = MultiEnvironmentWrapperFactory(environment_factory)
+multi_environment_factory = MultiEnvironmentManagerFactory(environment_factory)
 
 
 agent_factory = Factory()

@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import os
-from Models.BasicModels import build_discrete_state_action_critic, build_saved_model
+from Models.utils.model_builder import build_discrete_state_action_value_critic, build_saved_model
 
 class DQNModel:
 
@@ -18,7 +18,7 @@ class DQNModel:
         self.q_values_optimizer = keras.optimizers.Adam(learning_rate)
 
     def _create_models(self, state_space, action_space):
-        self.q_values_model = build_discrete_state_action_critic(state_space, action_space)
+        self.q_values_model = build_discrete_state_action_value_critic(state_space, action_space)
         self.target_q_values_model = self.q_values_model.clone()
 
     def _load_models(self, load_model_path):

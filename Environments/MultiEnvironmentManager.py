@@ -1,7 +1,7 @@
 from multiprocessing import Process, Pipe
-from Environments.wrappers.BasicWrapper import BasicWrapper
-from Environments.Space import MultiEnvironmentStateSpaceWrapper
 import numpy as np
+from Environments.BasicEnvironment import BasicEnvironment
+from Environments.Space import MultiEnvironmentStateSpace
 
 
 def environment_worker_function(env_function, pipe_end, **env_params):
@@ -12,10 +12,8 @@ def environment_worker_function(env_function, pipe_end, **env_params):
     while True:
         (msg, data) = pipe_end.recv()
 
-        if msg == "end":
-            pipe_end.close()
-            environment.end()
-            break
+        if msg == "start":
+            pipe_end.send(("start", state))
 
         elif msg == "step":
             action = data
@@ -24,12 +22,10 @@ def environment_worker_function(env_function, pipe_end, **env_params):
                 next_state = environment.start()
             pipe_end.send(("step", (reward, next_state, terminal)))
 
-        elif msg == "reset":
-            state = environment.start()
-            pipe_end.send(("reset", state))
-
-        elif msg == "start":
-            pipe_end.send(("start", state))
+        elif msg == "end":
+            pipe_end.close()
+            environment.end()
+            break
 
         elif msg == "get_state_space":
             state_space = environment.get_state_space()
@@ -43,13 +39,11 @@ def environment_worker_function(env_function, pipe_end, **env_params):
             raise ValueError(msg)
 
 
-class MultiEnvironmentWrapper(BasicWrapper):
+class MultiEnvironmentManager(BasicEnvironment):
 
     def __init__(self, env_function, num_envs, **env_params):
         self.num_envs = num_envs
-
         self.pipes_main, self.pipes_subprocess = zip(*[Pipe() for _ in range(num_envs)])
-        
         self.envs = [Process(target = environment_worker_function, args = (env_function, self.pipes_subprocess[i]), 
             kwargs = env_params) for i in range(self.num_envs)]
 
@@ -65,7 +59,7 @@ class MultiEnvironmentWrapper(BasicWrapper):
     def _configure_state_space(self):
         self.pipes_main[0].send(("get_state_space", None))
         (_, env_state_space) = self.pipes_main[0].recv()
-        self.state_space = MultiEnvironmentStateSpaceWrapper(env_state_space, self.num_envs)
+        self.state_space = MultiEnvironmentStateSpace(env_state_space, self.num_envs)
         self.state_shape = self.state_space.get_state_shape()
 
     def _configure_action_space(self):
@@ -106,11 +100,6 @@ class MultiEnvironmentWrapper(BasicWrapper):
             next_states[i] = next_state
 
         return rewards, next_states, terminals
-
-    def reset(self, index):
-        self.pipes_main[index].send(("reset", None))
-        (_, state) = self.pipes_main[index].recv()
-        return state
 
     def get_state_space(self):
         return self.state_space

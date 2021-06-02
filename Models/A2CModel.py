@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
-from Models.BasicModels import (build_discrete_actor, build_continuous_stochastic_actor, build_state_value_critic,
-    build_saved_model)
+from Models.utils.model_builder import (build_discrete_actor, build_continuous_stochastic_actor, 
+    build_state_value_critic, build_saved_model)
 import os
 from abc import ABC, abstractmethod
 from Models.utils.common_functions import *

@@ -28,17 +28,17 @@ class VectorStateSpace():
     def get_num_envs(self):
         return 1
 
-class MultiEnvironmentStateSpaceWrapper():
+class MultiEnvironmentStateSpace():
     
-    def __init__(self, state_space, num_envs):
-        self.wrappee_state_space = state_space
+    def __init__(self, env_state_space, num_envs):
+        self.env_state_space = env_state_space
         self.num_envs = num_envs
 
     def is_state_an_image(self):
-        return self.wrappee_state_space.is_state_an_image()
+        return self.env_state_space.is_state_an_image()
 
     def get_state_shape(self):
-        return self.wrappee_state_space.get_state_shape()
+        return self.env_state_space.get_state_shape()
 
     def get_num_envs(self):
         return self.num_envs

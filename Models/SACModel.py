@@ -1,8 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 import os
-from Models.BasicModels import (build_discrete_actor, build_continuous_stochastic_actor, 
-    build_discrete_state_action_critic, build_continuous_state_action_critic, build_saved_model)
+from Models.utils.model_builder import (build_discrete_actor, build_continuous_stochastic_actor, 
+    build_discrete_state_action_value_critic, build_continuous_state_action_value_critic, build_saved_model)
 from abc import ABC, abstractmethod
 from Models.utils.common_functions import *
 
@@ -112,7 +112,7 @@ class SACModelDiscrete(SACModel):
         return build_discrete_actor(state_space, action_space)
 
     def _create_critic(self, state_space, action_space):
-        return build_discrete_state_action_critic(state_space, action_space)
+        return build_discrete_state_action_value_critic(state_space, action_space)
 
     def forward(self, states):
         prob_dists = self.actor.forward(states)
@@ -164,7 +164,7 @@ class SACModelContinuous(SACModel):
         return build_continuous_stochastic_actor(state_space, action_space)
 
     def _create_critic(self, state_space, action_space):
-        return build_continuous_state_action_critic(state_space, action_space)
+        return build_continuous_state_action_value_critic(state_space, action_space)
 
     def _compute_mu_and_log_sigma(self, states, min_log_sigma = -20, max_log_sigma = 2):
         mus, log_sigmas = self.actor.forward(states)

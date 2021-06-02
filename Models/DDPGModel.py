@@ -1,7 +1,7 @@
 import os
 import tensorflow as tf
 from tensorflow import keras
-from Models.BasicModels import (build_continuous_deterministic_actor, build_continuous_state_action_critic,
+from Models.utils.model_builder import (build_continuous_deterministic_actor, build_continuous_state_action_value_critic,
     build_saved_model)
 
 class DDPGModel():
@@ -19,7 +19,7 @@ class DDPGModel():
 
     def _create_models(self, state_space, action_space):
         self.actor = build_continuous_deterministic_actor(state_space, action_space)
-        self.critic = build_continuous_state_action_critic(state_space, action_space)
+        self.critic = build_continuous_state_action_value_critic(state_space, action_space)
         self.actor_target = self.actor.clone()
         self.critic_target = self.critic.clone()
 

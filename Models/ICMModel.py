@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 import os
 from abc import ABC, abstractmethod
-from Models.BasicModels import (build_icm_state_encoder, build_icm_discrete_inverse_model, 
+from Models.utils.model_builder import (build_icm_state_encoder, build_icm_discrete_inverse_model, 
     build_icm_continuous_inverse_model, build_icm_discrete_forward_model, build_icm_continuous_forward_model, 
     build_saved_model)
 
