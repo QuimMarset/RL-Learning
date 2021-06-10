@@ -35,12 +35,13 @@ class SummaryWritter:
             self.episode_number += 1
 
     def _update_summary(self, iteration, losses):
-        mean_reward = np.mean(self.episode_rewards)
-        mean_steps = np.mean(self.episode_steps)
-        
         with self.summary_writer.as_default():
-            tf.summary.scalar('Episode Reward', mean_reward, iteration)
-            tf.summary.scalar('Episode Steps', mean_steps, iteration)
+            if len(self.episode_rewards) > 0:
+                mean_reward = np.mean(self.episode_rewards)
+                mean_steps = np.mean(self.episode_steps)
+
+                tf.summary.scalar('Episode Reward', mean_reward, iteration)
+                tf.summary.scalar('Episode Steps', mean_steps, iteration)
 
             for loss_name, loss_value in losses.items():
                 tf.summary.scalar(loss_name, loss_value, iteration)

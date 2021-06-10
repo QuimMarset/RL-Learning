@@ -5,14 +5,13 @@ environment_constants = {
     'frames_skipped' : 4,
     'frames_stacked' : 4,
     'num_envs' : 1,
-    'reward_scale' : 1,
 }
 
 agent_constants = {
     'learning_rate' : 1e-4,
     # Set to positive value if applied, set to None otherwise
-    'gradient_clipping' : 50,
-    'buffer_size' : 300,
+    'gradient_clipping' : 10,
+    'buffer_size' : 50000,
     # Discount factor
     'gamma' : 0.99,
 
@@ -27,7 +26,7 @@ agent_constants = {
     'decay_rate' : 1e-3,
 
     # Deep Deterministic Policy Gradient (DDPG)
-    'noise_std' : 1e-3,
+    'noise_std' : 0.1,
 
     # Entropy-regularized objective (SAC)
     'alpha' : 0.2,
@@ -45,10 +44,11 @@ agent_constants = {
 
 trainer_constants = {
     'save_models_path' : './Weights',
+    'reward_scale' : 1,
     'summary_path' : './Summary/train',
     'iterations' : 400,
-    'iteration_steps' : 300,
-    'batch_size' : 64,
+    'iteration_steps' : 1000,
+    'batch_size' : 100,
 }
 
 test_constants = {

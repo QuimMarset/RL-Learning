@@ -41,3 +41,18 @@ def compute_pdf_of_bounded_gaussian_samples(mus, log_sigmas, unbounded_samples):
     log_jacobian_determinant = tf.reduce_sum(tf.math.log(1 - tf.tanh(unbounded_samples)**2 + 1e-6), axis = -1)
     samples_log_prob = unbounded_samples_log_prob - log_jacobian_determinant
     return samples_log_prob
+
+def compute_kl_divergence_of_gaussians(mus, log_sigmas, old_mus, old_log_sigmas):
+    sigmas = tf.exp(log_sigmas)
+    old_sigmas = tf.exp(old_log_sigmas)
+    normal_distribs = MultivariateNormalDiag(mus, sigmas)
+    old_normal_distribs = MultivariateNormalDiag(old_mus, old_sigmas)
+    kl_divergences = old_normal_distribs.kl_divergence(normal_distribs)
+    return kl_divergences
+
+def compute_kl_divergence_of_categorical(old_prob_dists, prob_dists):
+    log_old_probs_dists = compute_log_of_tensor(old_prob_dists)
+    log_probs_dists = compute_log_of_tensor(prob_dists)
+    kl_divergences = tf.reduce_sum(old_prob_dists*(log_old_probs_dists - log_probs_dists), axis = -1)
+    return kl_divergences
+

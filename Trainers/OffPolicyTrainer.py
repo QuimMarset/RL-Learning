@@ -4,13 +4,12 @@ import os
 
 class OffPolicyTrainer():
 
-    def __init__(self, environment, agent, summary_path, save_models_path):
+    def __init__(self, environment, agent, summary_path, save_models_path, reward_scale):
         self.environment = environment
+        self.states = self.environment.start()
         self.agent = agent
         self.save_models_path = save_models_path
-        
-        self.states = self.environment.start()
-        
+        self.reward_scale = reward_scale       
         self.summary_writer = SummaryWritter(summary_path, environment.get_state_space())
     
     def train_iterations(self, iterations, iteration_steps, batch_size):
@@ -23,6 +22,7 @@ class OffPolicyTrainer():
                 rewards, next_states, terminals = self.environment.step(actions)
                 
                 self.summary_writer.add_transition_reward(rewards)
+                rewards = rewards*self.reward_scale
                 self.agent.store_transitions(self.states, rewards, terminals, next_states)
 
                 for index in range(len(terminals)):

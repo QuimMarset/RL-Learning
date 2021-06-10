@@ -29,21 +29,24 @@ class DDPGModel():
         self.actor_target = build_saved_model(os.path.join(load_model_path, 'actor_target'))
         self.critic_target = build_saved_model(os.path.join(load_model_path, 'critic_target'))
         
+    def _rescale_actions(self, actions):
+        actions = self.min_action + (actions + 1.0)*(self.max_action - self.min_action)/2.0
+        return actions
+        
     def forward(self, states):
         actions = self.actor.forward(states)
         exploration_noise = self.noise_std*tf.random.normal(actions.shape)
-        actions = tf.clip_by_value(actions + exploration_noise, self.min_action, self.max_action)
+        actions = tf.clip_by_value(self._rescale_actions(actions) + exploration_noise, self.min_action, self.max_action)
         return actions.numpy()
 
     def test_forward(self, state):
-        action = tf.clip_by_value(self.actor.forward(state), self.min_action, self.max_action)
+        action = self._rescale_actions(self.actor.forward(state))
         return action.numpy()
 
     def update_actor(self, states):
         with tf.GradientTape() as tape:
-            actions = self.actor.forward(states)
+            actions = self._rescale_actions(self.actor.forward(states))
             q_values = self.critic.forward([states, actions])
-            q_values = tf.squeeze(q_values, axis = -1)
             loss = -tf.reduce_mean(q_values)
 
         trainable_variables = self.actor.get_trainable_variables()
@@ -55,8 +58,7 @@ class DDPGModel():
    
     def update_critic(self, states, actions, rewards, terminals, next_states):
         with tf.GradientTape() as tape:
-            q_values = self.critic.forward([states, actions])
-            q_values = tf.squeeze(q_values, axis = -1)
+            q_values = tf.squeeze(self.critic.forward([states, actions]), axis = -1)
             next_actions = self.actor_target.forward(next_states)
             q_next_values = self.critic_target.forward([next_states, next_actions])
             y = rewards + self.gamma*(1 - terminals)*tf.squeeze(q_next_values, axis = -1)
@@ -70,16 +72,16 @@ class DDPGModel():
         return loss
 
     def update_actor_target(self):
-        actor_weights = self.actor.get_weights()
-        actor_target_weights = self.actor_target.get_weights()
-        for actor_weight, actor_target_weight in zip(actor_weights, actor_target_weights):
-            actor_target_weight = actor_target_weight*(1 - self.tau) + actor_weight*self.tau
+        actor_weights_list = self.actor.get_weights()
+        actor_target_weights_list = self.actor_target.get_weights()
+        for actor_weights_layer, actor_target_weights_layer in zip(actor_weights_list, actor_target_weights_list):
+            actor_target_weights_layer[:] = actor_target_weights_layer*(1 - self.tau) + actor_weights_layer*self.tau
 
     def update_critic_target(self):
-        critic_weights = self.critic.get_weights()
-        critic_target_weights = self.critic_target.get_weights()
-        for critic_weight, critic_target_weight in zip(critic_weights, critic_target_weights):
-            critic_target_weight = critic_target_weight*(1 - self.tau) + critic_weight*self.tau
+        critic_weights_list = self.critic.get_weights()
+        critic_target_weights_list = self.critic_target.get_weights()
+        for critic_weights_layer, critic_target_weights_layer in zip(critic_weights_list, critic_target_weights_list):
+            critic_target_weights_layer[:] = critic_target_weights_layer*(1 - self.tau) + critic_weights_layer*self.tau
 
     def save_models(self, path):
         self.actor.save_model(os.path.join(path, 'actor'))

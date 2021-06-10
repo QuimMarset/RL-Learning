@@ -37,28 +37,26 @@ class A2CBuffer():
     def _discount(self, values, discount_factor, bootstrapped_values = 0):
         next_values = bootstrapped_values
         for i in reversed(range(values.shape[1])):
-            next_values = next_values * (1 - self.terminals[:, i])
-            values[:, i] = values[:, i] + discount_factor*next_values
+            values[:, i] = values[:, i] + discount_factor*next_values*(1 - self.terminals[:, i])
             next_values = values[:, i]
         return values
 
     def _compute_returns(self, bootstrapped_values):
-        returns = self._discount(self.rewards, self.gamma, bootstrapped_values)
-        returns = np.reshape(returns, (-1))
-        return returns
+        rewards_copy = np.copy(self.rewards)
+        returns = self._discount(rewards_copy, self.gamma, bootstrapped_values)
+        return np.reshape(returns, (-1))
 
     def _compute_advantages(self, bootstrapped_values):
         values = np.append(self.values, np.expand_dims(bootstrapped_values, axis = -1), axis = -1)
         td_errors = self.rewards + self.gamma*values[:, 1:]*(1 - self.terminals) - values[:, :-1]
         advantages = self._discount(td_errors, self.gamma*self.gae_lambda)
-        advantages = np.reshape(advantages, (-1))
-        return advantages
+        return np.reshape(advantages, (-1))
 
     def reset_buffer(self):
         self.pointer = 0
 
     def get_last_next_states(self):
-        return self.next_states[:, self.pointer-1]
+        return self.next_states[:, -1]
 
     def get_transitions(self, bootstrapped_values):
         states = np.reshape(self.states, (-1, *self.state_shape))

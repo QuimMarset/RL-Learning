@@ -2,7 +2,7 @@ import numpy as np
 from Environments.wrappers.BasicWrapper import BasicWrapper
 
 
-class SingleEnvironmentWrapper(BasicWrapper):
+class VectorizeOutputWrapper(BasicWrapper):
     
     def start(self):
         first_state = self.environment.start()
@@ -16,6 +16,6 @@ class SingleEnvironmentWrapper(BasicWrapper):
             next_state = self.environment.start()
 
         next_state = np.expand_dims(next_state, axis = 0)
-        reward = [reward]
+        reward = np.array([reward])
         terminal = [terminal]
         return reward, next_state, terminal

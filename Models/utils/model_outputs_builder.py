@@ -14,7 +14,7 @@ def build_actor_gaussian_outputs(action_space, state_encoder_output):
 
 def build_actor_action_output(action_space, state_encoder_output):
     action_size = action_space.get_action_space_shape()[0]
-    action = keras.layers.Dense(units = action_size, activation = 'linear')(state_encoder_output)
+    action = keras.layers.Dense(units = action_size, activation = 'tanh')(state_encoder_output)
     return action
 
 

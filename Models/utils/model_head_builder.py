@@ -4,8 +4,8 @@ from tensorflow import keras
 
 def _build_vector_state_encoder(state_shape):
     state_input = keras.Input(state_shape)
-    dense_1 = keras.layers.Dense(32, activation = 'relu')(state_input)
-    dense_2 = keras.layers.Dense(64, activation = 'relu')(dense_1)
+    dense_1 = keras.layers.Dense(256, activation = 'relu')(state_input)
+    dense_2 = keras.layers.Dense(256, activation = 'relu')(dense_1)
     return state_input, dense_2
 
 def _build_image_state_encoder(state_shape):
@@ -33,8 +33,8 @@ def _build_vector_state_and_action_encoder(state_shape, action_shape):
     state_input = keras.Input(state_shape)
     action_input = keras.Input(action_shape)
     concat = tf.concat([state_input, action_input], axis = -1)
-    dense_1 = keras.layers.Dense(32, activation = 'relu')(concat)
-    dense_2 = keras.layers.Dense(64, activation = 'relu')(dense_1)
+    dense_1 = keras.layers.Dense(256, activation = 'relu')(concat)
+    dense_2 = keras.layers.Dense(256, activation = 'relu')(dense_1)
     return [state_input, action_input], dense_2
 
 def _build_image_state_and_action_encoder(state_shape, action_shape):

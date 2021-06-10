@@ -47,7 +47,7 @@ class VizDoomEnvironment(BasicEnvironment):
         else:
             next_state = self.game.get_state().screen_buffer
             self.previous_state = next_state
-            
+
         return reward, next_state, is_terminal
 
     def end(self):
