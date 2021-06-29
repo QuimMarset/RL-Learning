@@ -19,12 +19,12 @@ class Evaluator():
 
             while True:
 
-                action = self.agent.test_step(state)
+                action = self.agent.step(state)
                 reward, next_state, terminal = self.environment.step(action)
-                episode_reward += int(reward[0])
+                episode_reward += int(reward)
                 episode_steps += 1
 
-                if terminal[0]:
+                if terminal:
                     print("Episode " + str(episode + 1) + " Reward: " + str(episode_reward) + " Steps: " + str(episode_steps))
                     episode_rewards.append(episode_reward)
                     episode_reward = 0

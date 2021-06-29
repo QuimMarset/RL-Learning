@@ -1,6 +1,7 @@
 import numpy as np
+from abc import abstractmethod, ABC
 
-class A2CBuffer():
+class A2CBuffer(ABC):
 
     def __init__(self, buffer_size, state_space, action_space, gamma, gae_lambda):
         num_envs = state_space.get_num_envs()
@@ -10,20 +11,15 @@ class A2CBuffer():
         self.pointer = 0
         
         self.states = np.zeros((num_envs, buffer_size, *self.state_shape))
-        self.actions = self._create_actions_buffer(num_envs, buffer_size, action_space)
+        self._create_actions_buffer(num_envs, buffer_size, action_space)
         self.rewards = np.zeros((num_envs, buffer_size))
         self.terminals = np.zeros((num_envs, buffer_size))
         self.next_states = np.zeros((num_envs, buffer_size, *self.state_shape))
         self.values = np.zeros((num_envs, buffer_size))
 
+    @abstractmethod
     def _create_actions_buffer(self, num_envs, buffer_size, action_space):
-        has_continuous_actions = action_space.has_continuous_actions()
-        buffer_shape = (num_envs, buffer_size)
-        action_shape = action_space.get_action_space_shape() if has_continuous_actions else ()
-        buffer_shape = buffer_shape + action_shape
-        action_type = float if has_continuous_actions else int
-        actions = np.zeros(buffer_shape, dtype = action_type)
-        return actions
+        pass
 
     def store_transitions(self, states, actions, rewards, terminals, next_states, values):
         self.states[:, self.pointer] = states
@@ -55,6 +51,9 @@ class A2CBuffer():
     def reset_buffer(self):
         self.pointer = 0
 
+    def get_buffer_size(self):
+        return self.states.shape[1]
+
     def get_last_next_states(self):
         return self.next_states[:, -1]
 
@@ -65,3 +64,16 @@ class A2CBuffer():
         returns = self._compute_returns(bootstrapped_values)
         advantages = self._compute_advantages(bootstrapped_values)
         return states, actions, next_states, returns, advantages
+
+
+class A2CBufferDiscrete(A2CBuffer):
+
+    def _create_actions_buffer(self, num_envs, buffer_size, action_space):
+        num_actions = action_space.get_action_space_shape()[0]
+        self.actions = np.zeros((num_envs, buffer_size, num_actions), dtype = int)
+
+class A2CBufferContinuous(A2CBuffer):
+
+    def _create_actions_buffer(self, num_envs, buffer_size, action_space):
+        action_size = action_space.get_action_space_shape()[0]
+        self.actions = np.zeros((num_envs, buffer_size, action_size))

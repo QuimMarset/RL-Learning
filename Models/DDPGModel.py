@@ -2,73 +2,63 @@ import os
 import tensorflow as tf
 from tensorflow import keras
 from Models.utils.model_builder import (build_continuous_deterministic_actor, build_continuous_state_action_value_critic,
-    build_saved_model)
+    CheckpointedModel)
 
 class DDPGModel():
 
-    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping, gamma, tau, noise_std):
-        self._load_models(load_model_path) if load_model_path else self._create_models(state_space, action_space)
-        self.actor_optimizer = keras.optimizers.Adam(learning_rate)
-        self.critic_optimizer = keras.optimizers.Adam(learning_rate)
+    def __init__(self, action_space, gamma, tau, noise_std):
         self.gamma = gamma
         self.tau = tau
-        self.gradient_clipping = gradient_clipping
         self.noise_std = noise_std
         self.min_action = action_space.get_min_action()
         self.max_action = action_space.get_max_action()
 
-    def _create_models(self, state_space, action_space):
-        self.actor = build_continuous_deterministic_actor(state_space, action_space)
-        self.critic = build_continuous_state_action_value_critic(state_space, action_space)
-        self.actor_target = self.actor.clone()
-        self.critic_target = self.critic.clone()
+    def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
+        self.actor = build_continuous_deterministic_actor(state_space, action_space, learning_rate, gradient_clipping, 
+            os.path.join(save_path, 'actor'))
+        self.critic = build_continuous_state_action_value_critic(state_space, action_space, learning_rate, 
+            gradient_clipping, os.path.join(save_path, 'critic'))
+        self.actor_target = self.actor.clone(os.path.join(save_path, 'actor_target'))
+        self.critic_target = self.critic.clone(os.path.join(save_path, 'critic_target'))
 
-    def _load_models(self, load_model_path):
-        self.actor = build_saved_model(os.path.join(load_model_path, 'actor'))
-        self.critic = build_saved_model(os.path.join(load_model_path, 'critic'))
-        self.actor_target = build_saved_model(os.path.join(load_model_path, 'actor_target'))
-        self.critic_target = build_saved_model(os.path.join(load_model_path, 'critic_target'))
+    def load_models(self, checkpoint_path, gradient_clipping):
+        self.actor = CheckpointedModel(os.path.join(checkpoint_path, 'actor'), gradient_clipping)
+        self.critic = CheckpointedModel(os.path.join(checkpoint_path, 'critic'), gradient_clipping)
+        self.actor_target = CheckpointedModel(os.path.join(checkpoint_path, 'actor_target'), gradient_clipping)
+        self.critic_target = CheckpointedModel(os.path.join(checkpoint_path, 'critic_target'), gradient_clipping)
         
     def _rescale_actions(self, actions):
         actions = self.min_action + (actions + 1.0)*(self.max_action - self.min_action)/2.0
         return actions
         
     def forward(self, states):
-        actions = self.actor.forward(states)
+        actions = self.actor(states)
         exploration_noise = self.noise_std*tf.random.normal(actions.shape)
         actions = tf.clip_by_value(self._rescale_actions(actions) + exploration_noise, self.min_action, self.max_action)
         return actions.numpy()
 
-    def test_forward(self, state):
-        action = self._rescale_actions(self.actor.forward(state))
-        return action.numpy()
-
     def update_actor(self, states):
         with tf.GradientTape() as tape:
-            actions = self._rescale_actions(self.actor.forward(states))
-            q_values = self.critic.forward([states, actions])
+            actions = self._rescale_actions(self.actor(states))
+            q_values = self.critic([states, actions])
             loss = -tf.reduce_mean(q_values)
 
         trainable_variables = self.actor.get_trainable_variables()
         gradients = tape.gradient(loss, trainable_variables)
-        if self.gradient_clipping:
-            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
-        self.actor_optimizer.apply_gradients(zip(gradients, trainable_variables))
+        self.actor.update_model(gradients)
         return loss
    
     def update_critic(self, states, actions, rewards, terminals, next_states):
         with tf.GradientTape() as tape:
-            q_values = tf.squeeze(self.critic.forward([states, actions]), axis = -1)
-            next_actions = self.actor_target.forward(next_states)
-            q_next_values = self.critic_target.forward([next_states, next_actions])
+            q_values = tf.squeeze(self.critic([states, actions]), axis = -1)
+            next_actions = self.actor_target(next_states)
+            q_next_values = self.critic_target([next_states, next_actions])
             y = rewards + self.gamma*(1 - terminals)*tf.squeeze(q_next_values, axis = -1)
             loss = keras.losses.MSE(q_values, y)
 
         trainable_variables = self.critic.get_trainable_variables()
         gradients = tape.gradient(loss, trainable_variables)
-        if self.gradient_clipping:
-            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
-        self.critic_optimizer.apply_gradients(zip(gradients, trainable_variables))
+        self.critic.update_model(gradients)
         return loss
 
     def update_actor_target(self):
@@ -83,8 +73,8 @@ class DDPGModel():
         for critic_weights_layer, critic_target_weights_layer in zip(critic_weights_list, critic_target_weights_list):
             critic_target_weights_layer[:] = critic_target_weights_layer*(1 - self.tau) + critic_weights_layer*self.tau
 
-    def save_models(self, path):
-        self.actor.save_model(os.path.join(path, 'actor'))
-        self.critic.save_model(os.path.join(path, 'critic'))
-        self.actor_target.save_model(os.path.join(path, 'actor_target'))
-        self.critic_target.save_model(os.path.join(path, 'critic_target'))
+    def save_models(self):
+        self.actor.save_model()
+        self.critic.save_model()
+        self.actor_target.save_model()
+        self.critic_target.save_model()

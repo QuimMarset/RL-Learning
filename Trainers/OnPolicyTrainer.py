@@ -1,18 +1,17 @@
 from utils.summary_writer import SummaryWritter
-import os
 
 
 class OnPolicyTrainer:
 
-    def __init__(self, environment, agent, summary_path, save_models_path, reward_scale):
+    def __init__(self, environment, agent, summary_path, reward_scale):
         self.environment = environment
         self.states = self.environment.start()
         self.agent = agent
-        self.save_models_path = save_models_path
         self.reward_scale = reward_scale
         self.summary_writer = SummaryWritter(summary_path, self.environment.get_state_space())
   
-    def train_iterations(self, iterations, iteration_steps, batch_size):
+    def train_iterations(self, iterations, batch_size, **ignored):
+        iteration_steps = self.agent.get_buffer_size()
 
         for iteration in range(iterations):
 
@@ -32,23 +31,14 @@ class OnPolicyTrainer:
                 self.states = next_states
 
             losses = self.agent.train(batch_size)
-        
             self.agent.reset_buffer()
 
-            self.summary_writer.write_iteration_information(iteration, losses)
+            if iteration%10 == 0:
+                self.agent.save_models()
 
-            if iteration%20 == 0 or iteration == iterations - 1:
-                self.save_model(iteration)
+            self.summary_writer.write_iteration_information(iteration, losses)
             
             print("======== Iteration " + str(iteration) + " Finished ============")
         
         self.environment.end()
-        self.save_last_model()
-
-    def save_last_model(self):
-        path = os.path.join(self.save_models_path, "End")
-        self.agent.save_model(path)
-
-    def save_model(self, iteration):
-        path = os.path.join(self.save_models_path, str(iteration))
-        self.agent.save_model(path)
+        self.agent.save_models()

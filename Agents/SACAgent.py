@@ -5,13 +5,15 @@ from Agents.BasicAgent import BasicOffPolicyAgent
 
 class SACAgent(BasicOffPolicyAgent):
 
-    def __init__(self, state_space, action_space, learning_rate, load_models_path, gradient_clipping, gamma, tau, alpha, 
-        buffer_size):
-        model_class = SACModelContinuous if action_space.has_continuous_actions() else SACModelDiscrete
-        self.model = model_class(load_models_path, state_space, action_space, learning_rate, gamma, tau, alpha, 
-            gradient_clipping)
+    def __init__(self, buffer_size):
         self.buffer = ReplayBuffer(buffer_size)
         self.last_actions = None
+
+    def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_models_path, **ignored):
+        self.model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_models_path)
+
+    def load_models_from_checkpoint(self, checkpoint_path, gradient_clipping, **ignored):
+        self.model.load_models(checkpoint_path, gradient_clipping)
 
     def step(self, states):
         self.last_actions = self.model.forward(states)
@@ -38,5 +40,14 @@ class SACAgent(BasicOffPolicyAgent):
 
         return losses
 
-    def save_model(self, path):
-        self.model.save_models(path)
+class SACAgentDiscrete(SACAgent):
+
+    def __init__(self, buffer_size, gamma, tau, alpha):
+        super().__init__(buffer_size)
+        self.model = SACModelDiscrete(gamma, tau, alpha)
+
+class SACAgentContinuous(SACAgent):
+
+    def __init__(self, action_space, buffer_size, gamma, tau, alpha):
+        super().__init__(buffer_size)
+        self.model = SACModelContinuous(action_space, gamma, tau, alpha)

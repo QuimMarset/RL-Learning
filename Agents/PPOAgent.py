@@ -1,27 +1,26 @@
 import numpy as np
+from abc import abstractmethod
 from Models.PPOModel import PPOModelDiscrete, PPOModelContinuous
-from Buffers.PPOBuffer import PPOBuffer
+from Buffers.PPOBuffer import PPOBufferDiscrete, PPOBufferContinuous
 from Agents.BasicAgent import BasicOnPolicyAgent
 
 class PPOAgent(BasicOnPolicyAgent):
 
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon, buffer_size, load_models_path,
-        gamma, gae_lambda, epochs):
-        model_class = PPOModelContinuous if action_space.has_continuous_actions() else PPOModelDiscrete
-        self.model = model_class(load_models_path, state_space, action_space, learning_rate, gradient_clipping, epsilon)
-        self.buffer = PPOBuffer(buffer_size, state_space, action_space, gamma, gae_lambda)
+    def __init__(self, epochs):
         self.epochs = epochs
         self.last_values = None
         self.last_actions = None
         self.last_actions_log_prob = None
+
+    def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_models_path, **ignored):
+        self.model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_models_path)
+
+    def load_models_from_checkpoint(self, checkpoint_path, gradient_clipping, **ignored):
+        self.model.load_models(checkpoint_path, gradient_clipping)
         
     def step(self, states):
         self.last_values, self.last_actions, self.last_actions_log_prob = self.model.forward(states)
         return self.last_actions
-
-    def test_step(self, state):
-        action = self.model.test_forward(state)
-        return action
 
     def store_transitions(self, states, rewards, terminals, next_states):
         self.buffer.store_transitions(states, self.last_actions, rewards, terminals, next_states, self.last_values,
@@ -55,8 +54,18 @@ class PPOAgent(BasicOnPolicyAgent):
         losses = {'Actor Loss' : loss_actor, 'Critic Loss' : loss_critic}
         return losses
 
-    def save_model(self, path):
-        self.model.save_models(path)
 
-    def reset_buffer(self):
-        self.buffer.reset_buffer()
+class PPOAgentDiscrete(PPOAgent):
+
+    def __init__(self, state_space, action_space, buffer_size, gamma, gae_lambda, epsilon, epochs):
+        super().__init__(epochs)
+        self.buffer = PPOBufferDiscrete(buffer_size, state_space, action_space, gamma, gae_lambda)
+        self.model = PPOModelDiscrete(epsilon)
+
+
+class PPOAgentContinuous(PPOAgent):
+
+    def __init__(self, state_space, action_space, buffer_size, gamma, gae_lambda, epsilon, epochs):
+        super().__init__(epochs)
+        self.buffer = PPOBufferContinuous(buffer_size, state_space, action_space, gamma, gae_lambda)
+        self.model = PPOModelContinuous(action_space, epsilon)

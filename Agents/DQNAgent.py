@@ -5,20 +5,20 @@ from Agents.BasicAgent import BasicOffPolicyAgent
 
 class DQNAgent(BasicOffPolicyAgent):
 
-    def __init__(self, state_space, action_space, load_models_path, learning_rate, gradient_clipping, gamma, tau, 
-        min_epsilon, decay_rate, buffer_size):
-        self.model = DQNModel(load_models_path, state_space, action_space, learning_rate, gradient_clipping, gamma, tau, 
-            min_epsilon, decay_rate)
+    def __init__(self, buffer_size, gamma, tau, min_epsilon, decay_rate):
         self.buffer = ReplayBuffer(buffer_size)
-
+        self.model = DQNModel(gamma, tau, min_epsilon, decay_rate)
         self.last_actions = None
+
+    def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_models_path, **ignored):
+        self.model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_models_path)
+
+    def load_models(self, checkpoint_path, gradient_clipping, **ignored):
+        self.model.load_models(checkpoint_path, gradient_clipping)
 
     def step(self, state):
         self.last_actions = self.model.forward(state)
         return self.last_actions
-
-    def test_step(self, state):
-        return self.model.test_forward(state)
 
     def store_transitions(self, states, rewards, terminals, next_states):
         self.buffer.store_transitions(states, self.last_actions, rewards, terminals, next_states)
@@ -35,6 +35,3 @@ class DQNAgent(BasicOffPolicyAgent):
             losses = {'State Action Value Model Loss' : loss_q_values_model}
 
         return losses
-
-    def save_model(self, path):
-        self.model.save_models(path)

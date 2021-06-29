@@ -4,15 +4,14 @@ import os
 
 class OffPolicyTrainer():
 
-    def __init__(self, environment, agent, summary_path, save_models_path, reward_scale):
+    def __init__(self, environment, agent, summary_path, reward_scale):
         self.environment = environment
         self.states = self.environment.start()
         self.agent = agent
-        self.save_models_path = save_models_path
         self.reward_scale = reward_scale       
         self.summary_writer = SummaryWritter(summary_path, environment.get_state_space())
     
-    def train_iterations(self, iterations, iteration_steps, batch_size):
+    def train_iterations(self, iterations, iteration_steps, batch_size, **ignored):
 
         for iteration in range(iterations):
 
@@ -30,24 +29,15 @@ class OffPolicyTrainer():
                         self.summary_writer.end_episode(index)
 
                 self.states = next_states
-
                 losses = self.agent.train(batch_size)
+
+            if iteration%10 == 0:
+                self.agent.save_models()
             
             if losses:
                 self.summary_writer.write_iteration_information(iteration, losses)
-
-            if iteration%20 == 0 or iteration == iterations - 1:
-                self.save_model(iteration)
             
             print("======== Iteration " + str(iteration) + " Finished ============")
         
         self.environment.end()
-        self.save_last_model()
-
-    def save_last_model(self):
-        path = os.path.join(self.save_models_path, "End")
-        self.agent.save_model(path)
-
-    def save_model(self, iteration):
-        path = os.path.join(self.save_models_path, str(iteration))
-        self.agent.save_model(path)
+        self.agent.save_models()

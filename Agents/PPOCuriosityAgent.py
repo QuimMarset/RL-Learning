@@ -1,34 +1,28 @@
 import numpy as np
 from Agents.BasicAgent import BasicOnPolicyAgent
-from Buffers.PPOBuffer import PPOBuffer
+from Buffers.PPOBuffer import PPOBufferDiscrete, PPOBufferContinuous
 from Models.PPOModel import PPOModelDiscrete, PPOModelContinuous
 from Models.ICMModel import ICMModelDiscrete, ICMModelContinuous
 
 class PPOCuriosityAgent(BasicOnPolicyAgent):
 
-    def __init__(self, state_space, action_space, learning_rate, gradient_clipping, epsilon, buffer_size, load_models_path,
-        gamma, gae_lambda, epochs, beta, intrinsic_reward_scaling):
-        self.buffer = PPOBuffer(buffer_size, state_space, action_space, gamma, gae_lambda)
-        
-        model_class = PPOModelContinuous if action_space.has_continuous_actions() else PPOModelDiscrete
-        self.model = model_class(load_models_path, state_space, action_space, learning_rate, gradient_clipping, epsilon)
-        
-        curiosity_model_class = ICMModelContinuous if action_space.has_continuous_actions() else ICMModelDiscrete
-        self.curiosity_model = curiosity_model_class(load_models_path, state_space, action_space, learning_rate, 
-            gradient_clipping, beta, intrinsic_reward_scaling)
-       
+    def __init__(self, epochs):   
         self.epochs = epochs
         self.last_values = None
         self.last_actions = None
         self.last_actions_log_prob = None
+
+    def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_path, **ignored):
+        self.model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_path)
+        self.curiosity_model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_path)
+
+    def load_models(self, checkpoint_path, gradient_clipping, **ignored):
+        self.model.load_models(checkpoint_path, gradient_clipping)
+        self.curiosity_model.load_models(checkpoint_path, gradient_clipping)
         
     def step(self, states):
         self.last_values, self.last_actions, self.last_actions_log_prob = self.model.forward(states)
         return self.last_actions
-
-    def test_step(self, state):
-        action = self.model.test_forward(state)
-        return action
 
     def store_transitions(self, states, rewards, terminals, next_states):
         intrinsic_reward = self.curiosity_model.forward(states, self.last_actions, next_states)
@@ -69,9 +63,26 @@ class PPOCuriosityAgent(BasicOnPolicyAgent):
             'Inverse Loss' : inverse_loss}
         return losses
 
-    def save_model(self, path):
-        self.model.save_models(path)
-        self.curiosity_model.save_models(path)
+    def save_models(self):
+        self.model.save_models()
+        self.curiosity_model.save_models()
 
-    def reset_buffer(self):
-        self.buffer.reset_buffer()
+
+class PPOCuriosityAgentDiscrete(PPOCuriosityAgent):
+
+    def __init__(self, state_space, action_space, epochs, epsilon, buffer_size, gamma, gae_lambda, beta, 
+        intrinsic_reward_scale):
+        super().__init__(epochs)
+        self.buffer = PPOBufferDiscrete(buffer_size, state_space, action_space, gamma, gae_lambda)
+        self.model = PPOModelDiscrete(epsilon)
+        self.curiosity_model = ICMModelDiscrete(beta, intrinsic_reward_scale)
+
+
+class PPOCuriosityAgentContinuous(PPOCuriosityAgent):
+
+    def __init__(self, state_space, action_space, epochs, epsilon, buffer_size, gamma, gae_lambda, beta, 
+        intrinsic_reward_scale):
+        super().__init__(epochs)
+        self.buffer = PPOBufferContinuous(buffer_size, state_space, action_space, gamma, gae_lambda)
+        self.model = PPOModelContinuous(action_space, epsilon)
+        self.curiosity_model = ICMModelContinuous(beta, intrinsic_reward_scale)

@@ -8,10 +8,6 @@ class BasicAgent(ABC):
         pass
 
     @abstractmethod
-    def test_step(self):
-        pass
-
-    @abstractmethod
     def train(self, batch_size):
         pass
 
@@ -19,16 +15,18 @@ class BasicAgent(ABC):
     def store_transitions(self, states, rewards, terminals, next_states):
         pass
 
-    @abstractmethod
-    def save_model(self, path):
-        pass
+    def save_models(self):
+        self.model.save_models()
 
 
 class BasicOnPolicyAgent(BasicAgent):
 
-    @abstractmethod
+
     def reset_buffer(self):
-        pass
+        self.buffer.reset_buffer()
+
+    def get_buffer_size(self):
+        return self.buffer.get_buffer_size()
 
 
 class BasicOffPolicyAgent(BasicAgent):

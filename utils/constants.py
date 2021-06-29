@@ -8,10 +8,11 @@ environment_constants = {
 }
 
 agent_constants = {
+    'save_models_path' : './Weights',
     'learning_rate' : 1e-4,
     # Set to positive value if applied, set to None otherwise
-    'gradient_clipping' : 10,
-    'buffer_size' : 50000,
+    'gradient_clipping' : None,
+    'buffer_size' : 300,
     # Discount factor
     'gamma' : 0.99,
 
@@ -43,12 +44,13 @@ agent_constants = {
 }
 
 trainer_constants = {
-    'save_models_path' : './Weights',
-    'reward_scale' : 1,
+    'reward_scale' : 0.01,
     'summary_path' : './Summary/train',
-    'iterations' : 400,
-    'iteration_steps' : 1000,
+    'iterations' : 2000,
     'batch_size' : 100,
+
+    # Used with off-policy algorithms
+    'iteration_steps' : 500,
 }
 
 test_constants = {

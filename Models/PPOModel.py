@@ -1,41 +1,33 @@
 import tensorflow as tf
 from tensorflow import keras
 import os
-from Models.utils.model_builder import (build_discrete_actor, build_continuous_stochastic_actor, build_state_value_critic,
-    build_saved_model)
+from Models.utils.model_builder import (build_discrete_actor, build_continuous_stochastic_actor, 
+    build_state_value_critic, CheckpointedModel)
 from abc import ABC, abstractmethod
 from Models.utils.common_functions import *
 
 
 class PPOModel(ABC):
 
-    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping, epsilon):
-        self._load_models(load_model_path) if load_model_path else self._create_models(state_space, action_space)
-        self.actor_optimizer = keras.optimizers.Adam(learning_rate)
-        self.critic_optimizer = keras.optimizers.Adam(learning_rate)
-
-        self.learning_rate = learning_rate
+    def __init__(self, epsilon):
         self.epsilon = epsilon
-        self.gradient_clipping = gradient_clipping
 
-    def _create_models(self, state_space, action_space):
-        self.actor = self._create_actor(state_space, action_space)
-        self.critic = build_state_value_critic(state_space)
+    def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
+        self.actor = self._create_actor(state_space, action_space, learning_rate, gradient_clipping, 
+            os.path.join(save_path, 'actor'))
+        self.critic = build_state_value_critic(state_space, learning_rate, gradient_clipping, 
+            os.path.join(save_path, 'critic'))
 
-    def _load_models(self, load_models_path):
-        self.actor = build_saved_model(os.path.join(load_models_path, 'actor'))
-        self.critic = build_saved_model(os.path.join(load_models_path, 'critic'))
+    def load_models(self, checkpoint_path, gradient_clipping):
+        self.actor = CheckpointedModel(os.path.join(checkpoint_path, 'actor'), gradient_clipping)
+        self.critic = CheckpointedModel(os.path.join(checkpoint_path, 'critic'), gradient_clipping)
 
     @abstractmethod
-    def _create_actor(self, state_space, action_space):
+    def _create_actor(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
         pass
     
     @abstractmethod
     def forward(self, states):
-        pass
-
-    @abstractmethod
-    def test_forward(self, state):
         pass
 
     @abstractmethod
@@ -47,49 +39,41 @@ class PPOModel(ABC):
         loss = self._compute_actor_loss(tape, states, actions, advantages, actions_old_log_prob)
         trainable_variables = self.actor.get_trainable_variables()
         gradients = tape.gradient(loss, trainable_variables)
-        if self.gradient_clipping:
-            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
-        self.actor_optimizer.apply_gradients(zip(gradients, trainable_variables))
+        self.actor.update_model(gradients)
         return loss
 
     def update_critic(self, states, returns):
         with tf.GradientTape() as tape:
-            values = self.critic.forward(states)
+            values = self.critic(states)
             v_values = tf.squeeze(values, axis = -1)
             loss = keras.losses.MSE(returns, v_values)
         
         trainable_variables = self.critic.get_trainable_variables()
         gradients = tape.gradient(loss, trainable_variables)
-        if self.gradient_clipping:
-            gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clipping)
-        self.critic_optimizer.apply_gradients(zip(gradients, trainable_variables))
+        self.critic.update_model(gradients)
         return loss
 
-    def save_models(self, path):
-        self.actor.save_model(os.path.join(path, 'actor'))
-        self.critic.save_model(os.path.join(path, 'critic'))
+    def save_models(self):
+        self.actor.save_model()
+        self.critic.save_model()
 
 
 class PPOModelDiscrete(PPOModel):
 
-    def _create_actor(self, state_space, action_space):
-        return build_discrete_actor(state_space, action_space)
+    def _create_actor(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
+        return build_discrete_actor(state_space, action_space, learning_rate, gradient_clipping, save_path)
 
     def forward(self, states):
-        values = tf.squeeze(self.critic.forward(states), axis = -1)
-        prob_dists = self.actor.forward(states)
+        values = tf.squeeze(self.critic(states), axis = -1)
+        prob_dists = self.actor(states)
         actions = sample_from_categoricals(prob_dists)
         actions_prob = select_values_of_2D_tensor(prob_dists, actions)
         actions_log_prob = compute_log_of_tensor(actions_prob)
         return values.numpy(), actions.numpy(), actions_log_prob.numpy()
 
-    def test_forward(self, state):
-        _, action, _ = self.forward(state)
-        return action
-
     def _compute_actor_loss(self, tape, states, actions, advantages, actions_old_log_prob):
         with tape:
-            prob_dists = self.actor.forward(states)
+            prob_dists = self.actor(states)
             actions_prob = select_values_of_2D_tensor(prob_dists, actions)
             actions_log_prob = compute_log_of_tensor(actions_prob)
             ratios = tf.exp(actions_log_prob - actions_old_log_prob)
@@ -101,30 +85,25 @@ class PPOModelDiscrete(PPOModel):
 
 class PPOModelContinuous(PPOModel):
 
-    def __init__(self, load_model_path, state_space, action_space, learning_rate, gradient_clipping, epsilon):
-        super().__init__(load_model_path, state_space, action_space, learning_rate, gradient_clipping, epsilon)
+    def __init__(self, action_space, epsilon):
+        super().__init__(epsilon)
         self.min_action = action_space.get_min_action()
         self.max_action = action_space.get_max_action()
 
-    def _create_actor(self, state_space, action_space):
-        return build_continuous_stochastic_actor(state_space, action_space)
+    def _create_actor(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
+        return build_continuous_stochastic_actor(state_space, action_space, learning_rate, gradient_clipping, save_path)
 
     def forward(self, states):
-        values = tf.squeeze(self.critic.forward(states), axis = -1)
-        mus, log_sigmas = self.actor.forward(states)
+        values = tf.squeeze(self.critic(states), axis = -1)
+        mus, log_sigmas = self.actor(states)
         actions = tf.clip_by_value(sample_from_gaussians(mus, log_sigmas), self.min_action, self.max_action)
         actions_prob = compute_pdf_of_gaussian_samples(mus, log_sigmas, actions)
         actions_log_prob = compute_log_of_tensor(actions_prob)
         return values.numpy(), actions.numpy(), actions_log_prob.numpy()
 
-    def test_forward(self, state):
-        mu, _ = self.actor.forward(state)
-        mu = tf.clip_by_value(mu, self.min_action, self.max_action)
-        return mu.numpy()
-    
     def _compute_actor_loss(self, tape, states, actions, advantages, actions_old_log_prob):
         with tape:
-            mus, log_sigmas = self.actor.forward(states)
+            mus, log_sigmas = self.actor(states)
             actions_prob = compute_pdf_of_gaussian_samples(mus, log_sigmas, actions)
             actions_log_prob = compute_log_of_tensor(actions_prob)
             ratios = tf.exp(actions_log_prob - actions_old_log_prob)
