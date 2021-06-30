@@ -16,5 +16,7 @@ def parse_arguments():
     parser.add_argument("--load_checkpoint", default = None, 
         help = "Path containing the models's architecture, weights, and optimizer in train mode")
     parser.add_argument("--play", action = "store_true", help = "Set to evaluate mode")
+    parser.add_argument("--load_constants", default = None,
+        help = "Path containing the environment, agent and trainer configurable constants")
     args = parser.parse_args()
     return args

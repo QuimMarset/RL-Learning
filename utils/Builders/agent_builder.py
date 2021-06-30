@@ -1,4 +1,4 @@
-from Agents import A2CAgent, PPOAgent, DDPGAgent, SACAgent, DQNAgent, PPOCuriosityAgent
+from Agents import A2CAgent, PPOAgent, DDPGAgent, SACAgent, DQNAgent, PPOCuriosityAgent, TRPPOAgent
 from Agents.TestAgent import *
 
 def build_train_discrete_A2C(state_space, action_space, buffer_size, gamma, gae_lambda, **ignored):
@@ -69,3 +69,16 @@ def build_inference_discrete_PPOCuriosity(checkpoint_path):
 
 def build_inference_continuous_PPOCuriosity(checkpoint_path, action_space):
     return PPOCuriosityAgentTestContinuous(checkpoint_path, action_space)
+
+
+def build_train_discrete_TRPPO(state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence, **ignored):
+    return TRPPOAgent.TRPPOAgentDiscrete(state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence)
+
+def build_train_continuous_TRPPO(state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence, **ignored):
+    return TRPPOAgent.TRPPOAgentContinuous(state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence)
+
+def build_inference_discrete_TRPPO(checkpoint_path):
+    return TRPPOAgentTestDiscrete(checkpoint_path)
+
+def build_inference_continuous_TRPPO(checkpoint_path, action_space):
+    return TRPPOAgentTestContinuous(checkpoint_path, action_space)

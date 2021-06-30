@@ -6,7 +6,8 @@ from utils.Factories.environment_factory import (build_environment_train_factory
 from utils.Factories.agent_factory import (build_inference_discrete_factory, build_inference_continuous_factory,
     build_train_discrete_factory, build_train_continuous_factory)
 from utils.Factories.trainer_factory import build_trainer_factory
-from utils.Evaluator import Evaluator
+from utils.evaluator import Evaluator
+from utils.constants_utils import *
 
 
 def build_test_environment(environment_name):
@@ -50,6 +51,11 @@ def build_trainer(algorithm, environment, agent):
     trainer = trainer_factory.build(algorithm, environment, agent, **trainer_constants)
     return trainer
 
+def save_train_constants(save_path):
+    save_dict_to_json(environment_constants, 'environment_constants', save_path)
+    save_dict_to_json(agent_constants, 'agent_constants', save_path)
+    save_dict_to_json(trainer_constants, 'trainer_constants', save_path)
+
 
 if __name__ == "__main__":
 
@@ -59,10 +65,14 @@ if __name__ == "__main__":
     algorithm = input_arguments.algorithm
     is_play_mode = input_arguments.play
     checkpoint_path = input_arguments.load_checkpoint
+    constants_path = input_arguments.load_constants
 
     if is_play_mode:
 
         environment_constants['frames_skipped'] = 1
+
+        if constants_path:
+            load_json_as_dict(constants_path, 'environment_constants')
 
         environment = build_test_environment(environment_name)
 
