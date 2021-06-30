@@ -38,26 +38,41 @@ class TestAgentContinuous(TestAgent):
 class A2CAgentTestDiscrete(TestAgentDiscrete):
     pass
 
-class PPOAgentTestDiscrete(TestAgentDiscrete):
-    pass
-
-class PPOCuriosityAgentTestDiscrete(TestAgentDiscrete):
-    pass
-
-class SACAgentTestDiscrete(TestAgentDiscrete):
-    pass
-
 class A2CAgentTestContinuous(TestAgentContinuous):
+    pass
+
+class PPOAgentTestDiscrete(TestAgentDiscrete):
     pass
 
 class PPOAgentTestContinuous(TestAgentContinuous):
     pass
 
+class PPOCuriosityAgentTestDiscrete(TestAgentDiscrete):
+    pass
+
 class PPOCuriosityAgentTestContinuous(TestAgentContinuous):
     pass
 
-class SACAgentTestContinuous(TestAgentContinuous):
+class TRPPOAgentTestDiscrete(TestAgentDiscrete):
     pass
+
+class TRPPOAgentTestContinuous(TestAgentContinuous):
+    pass
+
+class SACAgentTestDiscrete(TestAgentDiscrete):
+    pass
+
+class SACAgentTestContinuous(TestAgentContinuous):
+
+    def _rescale_action(self, action):
+        action = self.min_action + (action + 1.0)*(self.max_action - self.min_action)/2.0
+        return action
+    
+    def step(self, state):
+        state = tf.expand_dims(state, aixs = 0)
+        mu, _ = self.actor(state)
+        action = self._rescale_action(tf.tanh(mu))
+        return action
 
 class DDPGAgentTest:
 
@@ -66,10 +81,14 @@ class DDPGAgentTest:
         self.min_action = action_space.get_min_action()
         self.max_action = action_space.get_max_action()
 
+    def _rescale_action(self, action):
+        action = self.min_action + (action + 1.0)*(self.max_action - self.min_action)/2.0
+        return action
+
     def step(self, state):
         state = tf.expand_dims(state, axis = 0)
-        action = self.actor(state)
-        return action.numpy()[0]
+        action = self.actor(state).numpy()[0]
+        return self._rescale_action(action)
 
 class DQNAgentTest:
 

@@ -2,7 +2,7 @@ import numpy as np
 from Buffers.A2CBuffer import A2CBufferDiscrete, A2CBufferContinuous
 
 
-class TROPPOBufferDiscrete(A2CBufferDiscrete):
+class TRPPOBufferDiscrete(A2CBufferDiscrete):
 
     def __init__(self, buffer_size, state_space, action_space, gamma, gae_lambda):
         super().__init__(buffer_size, state_space, action_space, gamma, gae_lambda)

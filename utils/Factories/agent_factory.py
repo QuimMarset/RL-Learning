@@ -25,6 +25,7 @@ def build_train_discrete_factory():
     agent_factory.register_builder("SAC", build_train_discrete_SAC)
     agent_factory.register_builder("DQN", build_train_DQN)
     agent_factory.register_builder("PPOCuriosity", build_train_discrete_PPOCuriosity)
+    agent_factory.register_builder("TRPPO", build_train_discrete_TRPPO)
     return agent_factory
 
 def build_train_continuous_factory():
@@ -34,6 +35,7 @@ def build_train_continuous_factory():
     agent_factory.register_builder("DDPG", build_train_DDPG)
     agent_factory.register_builder("SAC", build_train_continuous_SAC)
     agent_factory.register_builder("PPOCuriosity", build_train_continuous_PPOCuriosity)
+    agent_factory.register_builder("TRPPO", build_train_continuous_TRPPO)
     return agent_factory
 
 def build_inference_discrete_factory():
@@ -43,6 +45,7 @@ def build_inference_discrete_factory():
     agent_factory.register_builder("SAC", build_inference_discrete_SAC)
     agent_factory.register_builder("DQN", build_inference_DQN)
     agent_factory.register_builder("PPOCuriosity", build_inference_discrete_PPOCuriosity)
+    agent_factory.register_builder("TRPPO", build_inference_discrete_TRPPO)
     return agent_factory
 
 def build_inference_continuous_factory():
@@ -52,4 +55,5 @@ def build_inference_continuous_factory():
     agent_factory.register_builder("DDPG", build_inference_DDPG)
     agent_factory.register_builder("SAC", build_inference_continuous_SAC)
     agent_factory.register_builder("PPOCuriosity", build_inference_continuous_PPOCuriosity)
+    agent_factory.register_builder("TRPPO", build_inference_continuous_TRPPO)
     return agent_factory

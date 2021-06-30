@@ -17,5 +17,5 @@ class VectorizeOutputWrapper(BasicWrapper):
 
         next_state = np.expand_dims(next_state, axis = 0)
         reward = np.array([reward])
-        terminal = [terminal]
+        terminal = np.array([terminal])
         return reward, next_state, terminal
