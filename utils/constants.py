@@ -1,3 +1,6 @@
+import json
+import os
+
 
 environment_constants = {
     'doom_cfgs_path' : './Environments/environment_files/classic',
@@ -8,7 +11,6 @@ environment_constants = {
 }
 
 agent_constants = {
-    'save_models_path' : './Weights',
     'learning_rate' : 1e-4,
     # Set to positive value if applied, set to None otherwise
     'gradient_clipping' : None,
@@ -45,7 +47,6 @@ agent_constants = {
 
 trainer_constants = {
     'reward_scale' : 0.01,
-    'summary_path' : './Summary/train',
     'iterations' : 2000,
     'batch_size' : 100,
 
@@ -56,3 +57,34 @@ trainer_constants = {
 test_constants = {
     'episodes' : 50,
 }
+
+# Path to save model weights, model architecture, constants, and train summary
+save_path = './Weights'
+
+
+def get_environment_constants():
+    return environment_constants
+
+def get_agent_constants():
+    return agent_constants
+
+def get_trainer_constants():
+    return trainer_constants
+
+def get_test_constants():
+    return test_constants
+
+def get_save_path():
+    return save_path
+
+def save_dict_to_json(dict, dict_name, path):
+    path = os.path.join(path, dict_name + '.json')
+    with open(path, 'w') as file:
+        json.dump(dict, file)
+
+def load_json_as_dict(path, dict_name):
+    dict = None
+    path = os.path.join(path, dict_name)
+    with open(path, 'r') as file:
+        dict = json.load(file)
+    return dict

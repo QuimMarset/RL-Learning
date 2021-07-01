@@ -1,13 +1,13 @@
 import os
 from utils.parser import parse_arguments
-from utils.constants import *
+from utils.constants import (get_environment_constants, get_agent_constants, get_save_path, get_trainer_constants, get_test_constants,
+    load_json_as_dict, save_dict_to_json)
 from utils.Factories.environment_factory import (build_environment_train_factory, build_multi_environment_manager_factory,
     build_environment_test_factory)
 from utils.Factories.agent_factory import (build_inference_discrete_factory, build_inference_continuous_factory,
     build_train_discrete_factory, build_train_continuous_factory)
 from utils.Factories.trainer_factory import build_trainer_factory
 from utils.evaluator import Evaluator
-from utils.constants_utils import *
 
 
 def build_test_environment(environment_name):
@@ -43,7 +43,7 @@ def build_train_agent(algorithm, action_space, checkpoint_path):
     if checkpoint_path:
         agent.load_models_from_checkpoint(checkpoint_path, **agent_constants)
     else:
-        agent.create_models(**agent_constants)
+        agent.create_models(save_path, **agent_constants)
     return agent
 
 def build_trainer(algorithm, environment, agent):
@@ -55,6 +55,25 @@ def save_train_constants(save_path):
     save_dict_to_json(environment_constants, 'environment_constants', save_path)
     save_dict_to_json(agent_constants, 'agent_constants', save_path)
     save_dict_to_json(trainer_constants, 'trainer_constants', save_path)
+
+def get_train_constants(constants_path):
+    if constants_path:
+        environment_constants = load_json_as_dict(constants_path, 'environment_constants')
+        agent_constants = load_json_as_dict(constants_path, 'agent_constants')
+        trainer_constants = load_json_as_dict(constants_path, 'trainer_constants')
+    else:
+        environment_constants = get_environment_constants()
+        agent_constants = get_agent_constants()
+        trainer_constants = get_trainer_constants()
+    return environment_constants, agent_constants, trainer_constants
+
+def get_play_constants(constants_path):
+    if constants_path:
+        environment_constants = load_json_as_dict(constants_path, 'environment_constants')
+    else:
+        environment_constants = get_environment_constants()
+    test_constants = get_test_constants()
+    return environment_constants, test_constants
 
 
 if __name__ == "__main__":
@@ -69,10 +88,8 @@ if __name__ == "__main__":
 
     if is_play_mode:
 
+        environment_constants, test_constants = get_play_constants(constants_path)
         environment_constants['frames_skipped'] = 1
-
-        if constants_path:
-            load_json_as_dict(constants_path, 'environment_constants')
 
         environment = build_test_environment(environment_name)
 
@@ -84,8 +101,15 @@ if __name__ == "__main__":
     else:
 
         folder_name = algorithm + '_' + environment_name
-        trainer_constants['summary_path'] = os.path.join(trainer_constants['summary_path'], folder_name)
-        agent_constants['save_models_path'] = os.path.join(agent_constants['save_models_path'], folder_name)
+        save_path = get_save_path()
+        models_path = os.path.join(save_path, folder_name, 'models')
+        summary_path = os.path.join(save_path, folder_name, 'summary')
+        constants_path = os.path.join(save_path, folder_name, 'constants')
+        
+        environment_constants, agent_constants, trainer_constants = get_train_constants(constants_path)
+        
+        trainer_constants['summary_path'] = summary_path
+        agent_constants['save_models_path'] = models_path
 
         environment = build_train_environment(environment_name)
 
@@ -96,3 +120,6 @@ if __name__ == "__main__":
     
         trainer = build_trainer(algorithm, environment, agent)
         trainer.train_iterations(**trainer_constants)
+
+        if not constants_path:
+            save_train_constants(constants_path)
