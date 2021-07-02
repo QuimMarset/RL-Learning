@@ -7,22 +7,8 @@ from utils.Factories.environment_factory import (build_environment_train_factory
 from utils.Factories.agent_factory import (build_inference_discrete_factory, build_inference_continuous_factory,
     build_train_discrete_factory, build_train_continuous_factory)
 from utils.Factories.trainer_factory import build_trainer_factory
-from utils.evaluator import Evaluator
+from utils.Evaluator import Evaluator
 
-
-def build_test_environment(environment_name):
-    environment_factory = build_environment_test_factory()
-    environment = environment_factory.build(environment_name, **environment_constants)
-    return environment
-
-def build_test_agent(algorithm, checkpoint_path, action_space):
-    if action_space.has_continuous_actions():
-        agent_factory = build_inference_continuous_factory()
-        agent = agent_factory.build(algorithm, checkpoint_path, action_space)
-    else:
-        agent_factory = build_inference_discrete_factory()
-        agent = agent_factory.build(algorithm, checkpoint_path)
-    return agent
 
 def build_train_environment(environment_name):
     if environment_constants['num_envs'] <= 1:
@@ -56,22 +42,29 @@ def save_train_constants(save_path):
     save_dict_to_json(agent_constants, 'agent_constants', save_path)
     save_dict_to_json(trainer_constants, 'trainer_constants', save_path)
 
-def get_train_constants(constants_path):
-    if constants_path:
-        environment_constants = load_json_as_dict(constants_path, 'environment_constants')
-        agent_constants = load_json_as_dict(constants_path, 'agent_constants')
-        trainer_constants = load_json_as_dict(constants_path, 'trainer_constants')
-    else:
-        environment_constants = get_environment_constants()
-        agent_constants = get_agent_constants()
-        trainer_constants = get_trainer_constants()
+def get_train_constants():
+    environment_constants = get_environment_constants()
+    agent_constants = get_agent_constants()
+    trainer_constants = get_trainer_constants()
     return environment_constants, agent_constants, trainer_constants
 
-def get_play_constants(constants_path):
-    if constants_path:
-        environment_constants = load_json_as_dict(constants_path, 'environment_constants')
+def build_test_environment(environment_name, environment_constants):
+    environment_factory = build_environment_test_factory()
+    environment = environment_factory.build(environment_name, **environment_constants)
+    return environment
+
+def build_test_agent(algorithm, trained_path, action_space):
+    model_path = os.path.join(trained_path, 'model')
+    if action_space.has_continuous_actions():
+        agent_factory = build_inference_continuous_factory()
+        agent = agent_factory.build(algorithm, model_path, action_space)
     else:
-        environment_constants = get_environment_constants()
+        agent_factory = build_inference_discrete_factory()
+        agent = agent_factory.build(algorithm, model_path)
+    return agent
+
+def get_test_constants(trained_path):
+    environment_constants = load_json_as_dict(os.path.join(trained_path, 'constants'), 'environment_constants')
     test_constants = get_test_constants()
     return environment_constants, test_constants
 
@@ -82,13 +75,33 @@ if __name__ == "__main__":
 
     environment_name = input_arguments.environment
     algorithm = input_arguments.algorithm
-    is_play_mode = input_arguments.play
-    checkpoint_path = input_arguments.load_checkpoint
-    constants_path = input_arguments.load_constants
+    mode = input_arguments.mode
+    
 
-    if is_play_mode:
+    if mode == "train":
 
-        environment_constants, test_constants = get_play_constants(constants_path)
+        checkpoint_path = input_arguments.load_checkpoint
+
+
+
+
+    else:
+
+        trained_path = input_arguments.trained_path
+        environment_constants, test_constants = get_test_constants(trained_path)
+        environment_constants['frames_skipped'] = 1
+        
+        environment = build_test_environment(environment_name, environment_constants)
+
+        agent = build_test_agent(algorithm, trained_path, environment.get_action_space())
+
+        evaluator = Evaluator(environment, agent)
+        evaluator.play_episodes(test_constants['episodes'])
+
+
+    """if is_play_mode:
+
+        environment_constants, test_constants = get_play_constants(load_path)
         environment_constants['frames_skipped'] = 1
 
         environment = build_test_environment(environment_name)
@@ -122,4 +135,4 @@ if __name__ == "__main__":
         trainer.train_iterations(**trainer_constants)
 
         if not constants_path:
-            save_train_constants(constants_path)
+            save_train_constants(constants_path)"""

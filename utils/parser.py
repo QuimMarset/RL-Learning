@@ -13,10 +13,14 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description ='VizDoom with Reinforcement Learning')
     parser.add_argument("algorithm", help = "RL algorithm to use", choices = algorithms)
     parser.add_argument("environment", help = "Environment to use", choices = environments)
-    parser.add_argument("--load_checkpoint", default = None, 
-        help = "Path containing the models's architecture, weights, and optimizer in train mode")
-    parser.add_argument("--play", action = "store_true", help = "Set to evaluate mode")
-    parser.add_argument("--load_constants", default = None,
-        help = "Path containing the environment, agent and trainer configurable constants")
+    
+    subparsers = parser.add_subparsers(description = "Mode selection", dest = "mode")
+    subparse_train = subparsers.add_parser("train", help = "Train an agent")
+    subparse_train.add_argument("--load_checkpoint", default = None, help = "Path containing a halfway trained agent")
+    subparse_train
+
+    subparse_test = subparsers.add_parser("test", help = "Test a trained agent")
+    subparse_test.add_argument("trained_path", help = "Path containing the traied agent")
+    
     args = parser.parse_args()
     return args
