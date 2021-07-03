@@ -12,7 +12,7 @@ class PPOCuriosityAgent(BasicOnPolicyAgent):
         self.last_actions = None
         self.last_actions_log_prob = None
 
-    def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_path, **ignored):
+    def create_models(self, save_path, state_space, action_space, learning_rate, gradient_clipping, **ignored):
         self.model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_path)
         self.curiosity_model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_path)
 

@@ -54,7 +54,7 @@ trainer_constants = {
     'iteration_steps' : 500,
 }
 
-test_constants = {
+evaluator_constants = {
     'episodes' : 50,
 }
 
@@ -62,20 +62,28 @@ test_constants = {
 save_path = './Weights'
 
 
-def get_environment_constants():
-    return environment_constants
+def get_train_constants():
+    return environment_constants, agent_constants, trainer_constants
 
-def get_agent_constants():
-    return agent_constants
-
-def get_trainer_constants():
-    return trainer_constants
-
-def get_test_constants():
-    return test_constants
+def get_evaluator_constants():
+    return evaluator_constants
 
 def get_save_path():
     return save_path
+
+def save_train_constants(save_path):
+    save_dict_to_json(environment_constants, 'environment_constants', save_path)
+    save_dict_to_json(agent_constants, 'agent_constants', save_path)
+    save_dict_to_json(trainer_constants, 'trainer_constants', save_path)
+
+def load_train_constants(load_path):
+    environment_constants = load_json_as_dict(load_path, 'environment_constants')
+    agent_constants = load_json_as_dict(load_path, 'agent_constants')
+    trainer_constants = load_json_as_dict(load_path, 'trainer_constants')
+    return environment_constants, agent_constants, trainer_constants
+
+def load_test_constants(load_path):
+    return load_json_as_dict(load_path, 'environment_constants')
 
 def save_dict_to_json(dict, dict_name, path):
     path = os.path.join(path, dict_name + '.json')
