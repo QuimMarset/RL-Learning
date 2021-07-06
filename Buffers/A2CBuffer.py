@@ -1,9 +1,8 @@
 import numpy as np
-from abc import abstractmethod, ABC
 
-class A2CBuffer(ABC):
+class _A2CBuffer:
 
-    def __init__(self, buffer_size, state_space, action_space, gamma, gae_lambda):
+    def __init__(self, buffer_size, state_space, gamma, gae_lambda):
         num_envs = state_space.get_num_envs()
         self.state_shape = state_space.get_state_shape()
         self.gamma = gamma
@@ -11,15 +10,10 @@ class A2CBuffer(ABC):
         self.pointer = 0
         
         self.states = np.zeros((num_envs, buffer_size, *self.state_shape))
-        self._create_actions_buffer(num_envs, buffer_size, action_space)
         self.rewards = np.zeros((num_envs, buffer_size))
         self.terminals = np.zeros((num_envs, buffer_size))
         self.next_states = np.zeros((num_envs, buffer_size, *self.state_shape))
         self.values = np.zeros((num_envs, buffer_size))
-
-    @abstractmethod
-    def _create_actions_buffer(self, num_envs, buffer_size, action_space):
-        pass
 
     def store_transitions(self, states, actions, rewards, terminals, next_states, values):
         self.states[:, self.pointer] = states
@@ -66,14 +60,15 @@ class A2CBuffer(ABC):
         return states, actions, next_states, returns, advantages
 
 
-class A2CBufferDiscrete(A2CBuffer):
+class A2CBufferDiscrete(_A2CBuffer):
 
-    def _create_actions_buffer(self, num_envs, buffer_size, action_space):
-        num_actions = action_space.get_action_space_shape()[0]
-        self.actions = np.zeros((num_envs, buffer_size, num_actions), dtype = int)
+    def __init__(self, buffer_size, state_space, gamma, gae_lambda):
+        super().__init__(buffer_size, state_space, gamma, gae_lambda)
+        self.actions = np.zeros((state_space.get_num_envs(), buffer_size), dtype = int)
 
-class A2CBufferContinuous(A2CBuffer):
+class A2CBufferContinuous(_A2CBuffer):
 
-    def _create_actions_buffer(self, num_envs, buffer_size, action_space):
+    def __init__(self, buffer_size, state_space, action_space, gamma, gae_lambda):
+        super().__init__(buffer_size, state_space, gamma, gae_lambda)
         action_size = action_space.get_action_space_shape()[0]
-        self.actions = np.zeros((num_envs, buffer_size, action_size))
+        self.actions = np.zeros((state_space.get_num_envs(), buffer_size, action_size))

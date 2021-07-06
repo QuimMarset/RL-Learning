@@ -1,8 +1,8 @@
 from Agents import A2CAgent, PPOAgent, DDPGAgent, SACAgent, DQNAgent, PPOCuriosityAgent, TRPPOAgent
 from Agents.TestAgent import *
 
-def build_train_discrete_A2C(state_space, action_space, buffer_size, gamma, gae_lambda, **ignored):
-    return A2CAgent.A2CAgentDiscrete(state_space, action_space, buffer_size, gamma, gae_lambda)
+def build_train_discrete_A2C(state_space, buffer_size, gamma, gae_lambda, **ignored):
+    return A2CAgent.A2CAgentDiscrete(state_space, buffer_size, gamma, gae_lambda)
 
 def build_train_continuous_A2C(state_space, action_space, buffer_size, gamma, gae_lambda, **ignored):
     return A2CAgent.A2CAgentContinous(state_space, action_space, buffer_size, gamma, gae_lambda)
@@ -14,8 +14,8 @@ def build_inference_continuous_A2C(checkpoint_path, action_space):
     return A2CAgentTestContinuous(checkpoint_path, action_space)
 
 
-def build_train_discrete_PPO(state_space, action_space, buffer_size, gamma, gae_lambda, epsilon, epochs, **ignored):
-    return PPOAgent.PPOAgentDiscrete(state_space, action_space, buffer_size, gamma, gae_lambda, epsilon, epochs)
+def build_train_discrete_PPO(state_space, buffer_size, gamma, gae_lambda, epsilon, epochs, **ignored):
+    return PPOAgent.PPOAgentDiscrete(state_space, buffer_size, gamma, gae_lambda, epsilon, epochs)
 
 def build_train_continuous_PPO(state_space, action_space, buffer_size, gamma, gae_lambda, epsilon, epochs, **ignored):
     return PPOAgent.PPOAgentContinuous(state_space, action_space, buffer_size, gamma, gae_lambda, epsilon, epochs)
@@ -71,11 +71,11 @@ def build_inference_continuous_PPOCuriosity(checkpoint_path, action_space):
     return PPOCuriosityAgentTestContinuous(checkpoint_path, action_space)
 
 
-def build_train_discrete_TRPPO(state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence, **ignored):
-    return TRPPOAgent.TRPPOAgentDiscrete(state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence)
+def build_train_discrete_TRPPO(state_space, action_space, buffer_size, gamma, gae_lambda, epochs, max_kl_divergence, **ignored):
+    return TRPPOAgent.TRPPOAgentDiscrete(state_space, action_space, buffer_size, gamma, gae_lambda, epochs, max_kl_divergence)
 
-def build_train_continuous_TRPPO(state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence, **ignored):
-    return TRPPOAgent.TRPPOAgentContinuous(state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence)
+def build_train_continuous_TRPPO(state_space, action_space, buffer_size, gamma, gae_lambda, epochs, max_kl_divergence, **ignored):
+    return TRPPOAgent.TRPPOAgentContinuous(state_space, action_space, buffer_size, gamma, gae_lambda, epochs, max_kl_divergence)
 
 def build_inference_discrete_TRPPO(checkpoint_path):
     return TRPPOAgentTestDiscrete(checkpoint_path)

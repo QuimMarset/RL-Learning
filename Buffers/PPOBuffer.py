@@ -21,8 +21,8 @@ class ActionsLogProbBuffer:
 
 class PPOBufferDiscrete(A2CBufferDiscrete):
 
-    def __init__(self, buffer_size, state_space, action_space, gamma, gae_lambda):
-        super().__init__(buffer_size, state_space, action_space, gamma, gae_lambda)
+    def __init__(self, buffer_size, state_space, gamma, gae_lambda):
+        super().__init__(buffer_size, state_space, gamma, gae_lambda)
         self.actions_log_prob_buffer = ActionsLogProbBuffer(buffer_size, state_space.get_num_envs())
         
     def store_transitions(self, states, actions, rewards, terminals, next_states, values, actions_log_prob):

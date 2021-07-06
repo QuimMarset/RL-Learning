@@ -3,6 +3,9 @@ from abc import ABC, abstractmethod
 
 class BasicAgent(ABC):
 
+    def load_models(self, checkpoint_path, gradient_clipping, **ignored):
+        self.model.load_models(checkpoint_path, gradient_clipping)
+
     @abstractmethod
     def step(self):
         pass

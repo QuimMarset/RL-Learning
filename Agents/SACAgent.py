@@ -12,9 +12,6 @@ class SACAgent(BasicOffPolicyAgent):
     def create_models(self, save_models_path, state_space, action_space, learning_rate, gradient_clipping, **ignored):
         self.model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_models_path)
 
-    def load_models_from_checkpoint(self, checkpoint_path, gradient_clipping, **ignored):
-        self.model.load_models(checkpoint_path, gradient_clipping)
-
     def step(self, states):
         self.last_actions = self.model.forward(states)
         return self.last_actions

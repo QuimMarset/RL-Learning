@@ -13,9 +13,6 @@ class DQNAgent(BasicOffPolicyAgent):
     def create_models(self, save_models_path, state_space, action_space, learning_rate, gradient_clipping, **ignored):
         self.model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_models_path)
 
-    def load_models(self, checkpoint_path, gradient_clipping, **ignored):
-        self.model.load_models(checkpoint_path, gradient_clipping)
-
     def step(self, state):
         self.last_actions = self.model.forward(state)
         return self.last_actions

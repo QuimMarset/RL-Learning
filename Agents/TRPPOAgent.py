@@ -13,13 +13,11 @@ class TRPPOAgent(BasicOnPolicyAgent):
     def create_models(self, save_models_path, state_space, action_space, learning_rate, gradient_clipping, **ignored):
         self.model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_models_path)
 
-    def load_models_from_checkpoint(self, checkpoint_path, gradient_clipping, **ignored):
-        self.model.load_models(checkpoint_path, gradient_clipping)
 
 class TRPPOAgentDiscrete(TRPPOAgent):
 
-    def __init__(self, state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence):
-        super().__init__()
+    def __init__(self, state_space, action_space, buffer_size, gamma, gae_lambda, epochs, max_kl_divergence):
+        super().__init__(epochs)
         self.buffer = TRPPOBufferDiscrete(buffer_size, state_space, action_space, gamma, gae_lambda)
         self.model = TRPPOModelDiscrete(max_kl_divergence)
         self.last_prob_dists = None
@@ -63,8 +61,8 @@ class TRPPOAgentDiscrete(TRPPOAgent):
 
 class TRPPOAgentContinuous(TRPPOAgent):
 
-    def __init__(self, state_space, action_space, buffer_size, gamma, gae_lambda, max_kl_divergence):
-        super().__init__()
+    def __init__(self, state_space, action_space, buffer_size, gamma, gae_lambda, epochs, max_kl_divergence):
+        super().__init__(epochs)
         self.buffer = TRPPOBufferContinuous(buffer_size, state_space, action_space, gamma, gae_lambda)
         self.model = TRPPOModelContinuous(action_space, max_kl_divergence)
         self.last_mus = None

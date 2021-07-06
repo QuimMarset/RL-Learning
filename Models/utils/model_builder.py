@@ -75,7 +75,7 @@ class TestModel():
     def __init__(self, checkpoint_path):
         self.model = _build_keras_model_from_json(checkpoint_path)
         checkpoint = tf.train.Checkpoint(model = self.model)
-        checkpoint.restore(tf.train.latest_checkpoint(checkpoint_path))
+        checkpoint.restore(tf.train.latest_checkpoint(checkpoint_path)).expect_partial()
 
     def __call__(self ,states):
         return self.model(states)

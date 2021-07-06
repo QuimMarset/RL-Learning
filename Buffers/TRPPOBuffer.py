@@ -5,9 +5,9 @@ from Buffers.A2CBuffer import A2CBufferDiscrete, A2CBufferContinuous
 class TRPPOBufferDiscrete(A2CBufferDiscrete):
 
     def __init__(self, buffer_size, state_space, action_space, gamma, gae_lambda):
-        super().__init__(buffer_size, state_space, action_space, gamma, gae_lambda)
+        super().__init__(buffer_size, state_space, gamma, gae_lambda)
         num_actions = action_space.get_action_space_shape()[0]
-        self.prob_dists = np.zeros((state_space.get_num_envs(), buffer_size, num_actions))
+        self.prob_dists = np.zeros((state_space.get_num_envs(), buffer_size, num_actions), dtype = np.float32)
 
     def store_transitions(self, states, actions, rewards, terminals, next_states, values, prob_dists):
         self.prob_dists[:, self.pointer] = prob_dists

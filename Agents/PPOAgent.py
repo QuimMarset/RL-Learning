@@ -14,9 +14,6 @@ class PPOAgent(BasicOnPolicyAgent):
 
     def create_models(self, save_models_path, state_space, action_space, learning_rate, gradient_clipping, **ignored):
         self.model.create_models(state_space, action_space, learning_rate, gradient_clipping, save_models_path)
-
-    def load_models_from_checkpoint(self, checkpoint_path, gradient_clipping, **ignored):
-        self.model.load_models(checkpoint_path, gradient_clipping)
         
     def step(self, states):
         self.last_values, self.last_actions, self.last_actions_log_prob = self.model.forward(states)
@@ -57,9 +54,9 @@ class PPOAgent(BasicOnPolicyAgent):
 
 class PPOAgentDiscrete(PPOAgent):
 
-    def __init__(self, state_space, action_space, buffer_size, gamma, gae_lambda, epsilon, epochs):
+    def __init__(self, state_space, buffer_size, gamma, gae_lambda, epsilon, epochs):
         super().__init__(epochs)
-        self.buffer = PPOBufferDiscrete(buffer_size, state_space, action_space, gamma, gae_lambda)
+        self.buffer = PPOBufferDiscrete(buffer_size, state_space, gamma, gae_lambda)
         self.model = PPOModelDiscrete(epsilon)
 
 

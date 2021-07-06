@@ -62,7 +62,7 @@ class A2CModelDiscrete(A2CModel):
 
     def forward(self, states):
         values = tf.squeeze(self.critic(states), axis = -1)
-        prob_dists = self.actor.forward(states)
+        prob_dists = self.actor(states)
         actions = sample_from_categoricals(prob_dists)
         return values.numpy(), actions.numpy()
 
