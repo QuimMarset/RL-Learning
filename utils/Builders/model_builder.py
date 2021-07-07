@@ -1,9 +1,8 @@
 from abc import abstractmethod, ABC
 from tensorflow import keras
-from json import load, dumps
-import os
-from Models.utils.model_head_builder import *
-from Models.utils.model_outputs_builder import *
+from utils.Builders.model_head_builder import *
+from utils.Builders.model_outputs_builder import *
+from utils.util_functions import load_json_file_as_string, save_json_string_to_file
 
 class TrainModel(ABC):
 
@@ -46,11 +45,8 @@ class ScratchModel(TrainModel):
             self.save_architecture = False
 
     def _save_architecture(self):
-        json_file_path = os.path.join(self.save_path, 'model.json')
-        with open(json_file_path, "w") as file:
-            json_arguments = {'indent' : 4, 'separators' : (', ', ': ')}
-            json_string = self.model.to_json(**json_arguments)
-            file.write(json_string)
+        json_string = self.model.to_json(**{'indent' : 4, 'separators' : (', ', ': ')})
+        save_json_string_to_file(json_string, 'model', self.save_path)
 
     def clone(self, save_path):
         learning_rate = self.optimizer.get_config()['learning_rate']
@@ -82,9 +78,7 @@ class TestModel():
         
 
 def _build_keras_model_from_json(model_path):
-    with open(os.path.join(model_path, 'model.json')) as file:
-        dict = load(file)
-    json_string = dumps(dict)
+    json_string = load_json_file_as_string(model_path, 'model')
     return keras.models.model_from_json(json_string)
 
 

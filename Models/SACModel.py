@@ -1,10 +1,10 @@
 import tensorflow as tf
 from tensorflow import keras
-import os
-from Models.utils.model_builder import (build_discrete_actor, build_continuous_stochastic_actor, 
-    build_discrete_state_action_value_critic, build_continuous_state_action_value_critic, CheckpointedModel)
 from abc import ABC, abstractmethod
-from Models.utils.common_functions import *
+from utils.Builders.model_builder import (build_discrete_actor, build_continuous_stochastic_actor, 
+    build_discrete_state_action_value_critic, build_continuous_state_action_value_critic, CheckpointedModel)
+from utils.model_util_functions import *
+from utils.util_functions import append_folder_name_to_path
 
 
 class SACModel(ABC):
@@ -16,20 +16,22 @@ class SACModel(ABC):
 
     def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
         self.actor = self._create_actor(state_space, action_space, learning_rate, gradient_clipping, 
-            os.path.join(save_path, 'actor'))
+            append_folder_name_to_path(save_path, 'actor'))
         self.critic_1 = self._create_critic(state_space, action_space, learning_rate, gradient_clipping, 
-            os.path.join(save_path, 'critic_1'))
+            append_folder_name_to_path(save_path, 'critic_1'))
         self.critic_2 = self._create_critic(state_space, action_space, learning_rate, gradient_clipping, 
-            os.path.join(save_path, 'critic_2'))
-        self.critic_target_1 = self.critic_1.clone(os.path.join(save_path, 'critic_target_1'))
-        self.critic_target_2 = self.critic_2.clone(os.path.join(save_path, 'critic_target_2'))
+            append_folder_name_to_path(save_path, 'critic_2'))
+        self.critic_target_1 = self.critic_1.clone(append_folder_name_to_path(save_path, 'critic_target_1'))
+        self.critic_target_2 = self.critic_2.clone(append_folder_name_to_path(save_path, 'critic_target_2'))
 
     def load_models(self, checkpoint_path, gradient_clipping):
-        self.actor = CheckpointedModel(os.path.join(checkpoint_path, 'actor'), gradient_clipping)
-        self.critic_1 = CheckpointedModel(os.path.join(checkpoint_path, 'critic_1'), gradient_clipping)
-        self.critic_2 = CheckpointedModel(os.path.join(checkpoint_path, 'critic_2'), gradient_clipping)
-        self.critic_target_1 = CheckpointedModel(os.path.join(checkpoint_path, 'critic_target_1'), gradient_clipping)
-        self.critic_target_2 = CheckpointedModel(os.path.join(checkpoint_path, 'critic_target_2'), gradient_clipping)
+        self.actor = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'actor'), gradient_clipping)
+        self.critic_1 = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'critic_1'), gradient_clipping)
+        self.critic_2 = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'critic_2'), gradient_clipping)
+        self.critic_target_1 = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'critic_target_1'), 
+            gradient_clipping)
+        self.critic_target_2 = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'critic_target_2'), 
+            gradient_clipping)
 
     @abstractmethod
     def _create_actor(self, state_space, action_space, learning_rate, gradient_clipping, save_path):

@@ -1,10 +1,11 @@
 import tensorflow as tf
 from tensorflow import keras
 import os
-from Models.utils.model_builder import (build_discrete_actor, build_continuous_stochastic_actor, build_state_value_critic,
-    CheckpointedModel)
+from utils.Builders.model_builder import (build_discrete_actor, build_continuous_stochastic_actor, 
+    build_state_value_critic, CheckpointedModel)
 from abc import ABC, abstractmethod
-from Models.utils.common_functions import *
+from utils.model_util_functions import *
+from utils.util_functions import append_folder_name_to_path
 
 
 class TRPPOModel(ABC):
@@ -14,13 +15,13 @@ class TRPPOModel(ABC):
         
     def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
         self.actor = self._create_actor(state_space, action_space, learning_rate, gradient_clipping, 
-            os.path.join(save_path, 'actor'))
+            append_folder_name_to_path(save_path, 'actor'))
         self.critic = build_state_value_critic(state_space, learning_rate, gradient_clipping,
-            os.path.join(save_path, 'critic'))
+            append_folder_name_to_path(save_path, 'critic'))
 
     def load_models(self, checkpoint_path, gradient_clipping):
-        self.actor = CheckpointedModel(os.path.join(checkpoint_path, 'actor'), gradient_clipping)
-        self.critic = CheckpointedModel(os.path.join(checkpoint_path, 'critic'), gradient_clipping)
+        self.actor = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'actor'), gradient_clipping)
+        self.critic = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'critic'), gradient_clipping)
 
     @abstractmethod
     def _create_actor(self, state_space, action_space, learning_rate, gradient_clipping, save_path):

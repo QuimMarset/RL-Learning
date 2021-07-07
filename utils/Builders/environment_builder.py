@@ -1,6 +1,6 @@
 from Environments import (VizDoomEnvironment, GymImageStateEnvironment, GymVectorStateEnvironment,
     MultiEnvironmentManager)
-from Environments.wrappers import (FrameNormalizatonWrapper, FrameRGB2GrayWrapper, FrameResizeWrapper,
+from utils.Wrappers import (FrameNormalizatonWrapper, FrameRGB2GrayWrapper, FrameResizeWrapper,
     SkipFramesWrapper, StackFramesWrapper, VectorizeOutputWrapper)
 
 

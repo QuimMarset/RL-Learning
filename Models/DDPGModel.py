@@ -1,8 +1,8 @@
-import os
 import tensorflow as tf
 from tensorflow import keras
-from Models.utils.model_builder import (build_continuous_deterministic_actor, build_continuous_state_action_value_critic,
-    CheckpointedModel)
+from utils.Builders.model_builder import (build_continuous_deterministic_actor, 
+    build_continuous_state_action_value_critic, CheckpointedModel)
+from utils.util_functions import append_folder_name_to_path
 
 class DDPGModel():
 
@@ -15,17 +15,19 @@ class DDPGModel():
 
     def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
         self.actor = build_continuous_deterministic_actor(state_space, action_space, learning_rate, gradient_clipping, 
-            os.path.join(save_path, 'actor'))
+            append_folder_name_to_path(save_path, 'actor'))
         self.critic = build_continuous_state_action_value_critic(state_space, action_space, learning_rate, 
-            gradient_clipping, os.path.join(save_path, 'critic'))
-        self.actor_target = self.actor.clone(os.path.join(save_path, 'actor_target'))
-        self.critic_target = self.critic.clone(os.path.join(save_path, 'critic_target'))
+            gradient_clipping, append_folder_name_to_path(save_path, 'critic'))
+        self.actor_target = self.actor.clone(append_folder_name_to_path(save_path, 'actor_target'))
+        self.critic_target = self.critic.clone(append_folder_name_to_path(save_path, 'critic_target'))
 
     def load_models(self, checkpoint_path, gradient_clipping):
-        self.actor = CheckpointedModel(os.path.join(checkpoint_path, 'actor'), gradient_clipping)
-        self.critic = CheckpointedModel(os.path.join(checkpoint_path, 'critic'), gradient_clipping)
-        self.actor_target = CheckpointedModel(os.path.join(checkpoint_path, 'actor_target'), gradient_clipping)
-        self.critic_target = CheckpointedModel(os.path.join(checkpoint_path, 'critic_target'), gradient_clipping)
+        self.actor = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'actor'), gradient_clipping)
+        self.critic = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'critic'), gradient_clipping)
+        self.actor_target = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'actor_target'), 
+            gradient_clipping)
+        self.critic_target = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'critic_target'), 
+            gradient_clipping)
         
     def _rescale_actions(self, actions):
         actions = self.min_action + (actions + 1.0)*(self.max_action - self.min_action)/2.0

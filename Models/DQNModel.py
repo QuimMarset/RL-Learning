@@ -1,8 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
-import os
-from Models.utils.model_builder import build_discrete_state_action_value_critic, CheckpointedModel
+from utils.Builders.model_builder import build_discrete_state_action_value_critic, CheckpointedModel
+from utils.util_functions import append_folder_name_to_path
 
 class DQNModel:
 
@@ -15,12 +15,15 @@ class DQNModel:
         
     def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
         self.q_values_model = build_discrete_state_action_value_critic(state_space, action_space, learning_rate, 
-            gradient_clipping, os.path.join(save_path, 'q_values_model'))
-        self.target_q_values_model = self.q_values_model.clone(os.path.join(save_path, 'target_q_values_model'))
+            gradient_clipping, append_folder_name_to_path(save_path, 'q_values_model'))
+        self.target_q_values_model = self.q_values_model.clone(append_folder_name_to_path(save_path, 
+            'target_q_values_model'))
 
     def load_models(self, checkpoint_path, gradient_clipping):
-        self.q_values_model = CheckpointedModel(os.path.join(checkpoint_path, 'q_values_model'), gradient_clipping)
-        self.target_q_values_model = CheckpointedModel(os.path.join(checkpoint_path, 'target_q_values_model'))
+        self.q_values_model = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'q_values_model'), 
+            gradient_clipping)
+        self.target_q_values_model = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 
+            'target_q_values_model'))
 
     def _select_random_actions(self, q_values):
         num_actions = q_values.shape[1]

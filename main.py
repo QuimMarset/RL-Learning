@@ -6,7 +6,7 @@ from utils.Factories.environment_factory import (build_environment_train_factory
 from utils.Factories.agent_factory import (build_inference_discrete_factory, build_inference_continuous_factory,
     build_train_discrete_factory, build_train_continuous_factory)
 from utils.Factories.trainer_factory import build_trainer_factory
-from utils.Evaluator import Evaluator
+from Evaluator import Evaluator
 
 
 def build_train_environment(environment_name, environment_constants):

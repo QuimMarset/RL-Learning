@@ -1,4 +1,4 @@
-from utils.SummaryWriter import SummaryWritter
+from SummaryWriter import SummaryWritter
 
 
 class OnPolicyTrainer:

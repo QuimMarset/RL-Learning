@@ -1,5 +1,5 @@
-import json
-import os
+from utils.util_functions import (create_directory, save_dict_to_json_file, append_folder_name_to_path,
+    load_json_file_as_dict)
 
 
 environment_constants = {
@@ -74,37 +74,19 @@ def get_save_path():
 def save_train_constants(save_path):
     constants_path = _create_constants_path(save_path)
     create_directory(constants_path)
-    save_dict_to_json(environment_constants, 'environment_constants', constants_path)
-    save_dict_to_json(agent_constants, 'agent_constants', constants_path)
-    save_dict_to_json(trainer_constants, 'trainer_constants', constants_path)
+    save_dict_to_json_file(environment_constants, 'environment_constants', constants_path)
+    save_dict_to_json_file(agent_constants, 'agent_constants', constants_path)
+    save_dict_to_json_file(trainer_constants, 'trainer_constants', constants_path)
 
 def load_train_constants(load_path):
     constants_path = _create_constants_path(load_path)
-    environment_constants = load_json_as_dict(constants_path, 'environment_constants')
-    agent_constants = load_json_as_dict(constants_path, 'agent_constants')
-    trainer_constants = load_json_as_dict(constants_path, 'trainer_constants')
+    environment_constants = load_json_file_as_dict(constants_path, 'environment_constants')
+    agent_constants = load_json_file_as_dict(constants_path, 'agent_constants')
+    trainer_constants = load_json_file_as_dict(constants_path, 'trainer_constants')
     return environment_constants, agent_constants, trainer_constants
 
 def load_test_constants(load_path):
-    return load_json_as_dict(_create_constants_path(load_path), 'environment_constants')
+    return load_json_file_as_dict(_create_constants_path(load_path), 'environment_constants')
 
 def _create_constants_path(path):
     return append_folder_name_to_path(path, 'constants')
-
-def append_folder_name_to_path(path, folder_name):
-    return os.path.join(path, folder_name)
-
-def create_directory(path):
-    os.makedirs(path, exist_ok = True)
-
-def save_dict_to_json(dict, dict_name, path):
-    path = os.path.join(path, dict_name + '.json')
-    with open(path, 'w') as file:
-        json.dump(dict, file, indent = 4, separators = (', ', ': '))
-
-def load_json_as_dict(path, dict_name):
-    dict = None
-    path = os.path.join(path, dict_name + '.json')
-    with open(path, 'r') as file:
-        dict = json.load(file)
-    return dict

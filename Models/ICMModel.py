@@ -1,10 +1,10 @@
 import tensorflow as tf
 from tensorflow import keras
-import os
 from abc import ABC, abstractmethod
-from Models.utils.model_builder import (build_icm_state_encoder, build_icm_discrete_inverse_model, 
+from utils.Builders.model_builder import (build_icm_state_encoder, build_icm_discrete_inverse_model, 
     build_icm_continuous_inverse_model, build_icm_discrete_forward_model, build_icm_continuous_forward_model, 
     CheckpointedModel)
+from utils.util_functions import append_folder_name_to_path
 
 
 class ICMModel(ABC):
@@ -15,16 +15,19 @@ class ICMModel(ABC):
             
     def create_models(self, state_space, action_space, learning_rate, gradient_clipping, save_path):
         self.state_encoder, encoding_size = build_icm_state_encoder(state_space, learning_rate, gradient_clipping,
-            os.path.join(save_path, 'state_encoder'))
+            append_folder_name_to_path(save_path, 'state_encoder'))
         self.inverse_model = self._create_inverse_model(action_space, encoding_size, learning_rate, gradient_clipping, 
-            os.path.join(save_path, 'inverse_model'))
+            append_folder_name_to_path(save_path, 'inverse_model'))
         self.forward_model = self._create_forward_model(action_space, encoding_size, learning_rate, gradient_clipping, 
-            os.path.join(save_path, 'forward_model'))
+            append_folder_name_to_path(save_path, 'forward_model'))
 
     def load_models(self, checkpoint_path, gradient_clipping):
-        self.state_encoder = CheckpointedModel(os.path.join(checkpoint_path, 'state_encoder'), gradient_clipping)
-        self.inverse_model = CheckpointedModel(os.path.join(checkpoint_path, 'inverse_model'), gradient_clipping)
-        self.forward_model = CheckpointedModel(os.path.join(checkpoint_path, 'forward_model'), gradient_clipping)
+        self.state_encoder = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'state_encoder'), 
+            gradient_clipping)
+        self.inverse_model = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'inverse_model'), 
+            gradient_clipping)
+        self.forward_model = CheckpointedModel(append_folder_name_to_path(checkpoint_path, 'forward_model'), 
+            gradient_clipping)
 
     @abstractmethod
     def _create_inverse_model(self, action_space, encoding_size, learning_rate, gradient_clipping, save_path):

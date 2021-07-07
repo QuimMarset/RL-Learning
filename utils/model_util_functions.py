@@ -1,6 +1,4 @@
-import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 from tensorflow_probability.python.distributions import Categorical, MultivariateNormalDiag
 
 
@@ -55,4 +53,3 @@ def compute_kl_divergence_of_categorical(old_prob_dists, prob_dists):
     log_probs_dists = compute_log_of_tensor(prob_dists)
     kl_divergences = tf.reduce_sum(old_prob_dists*(log_old_probs_dists - log_probs_dists), axis = -1)
     return kl_divergences
-
